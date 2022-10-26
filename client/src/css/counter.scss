@@ -1,0 +1,23 @@
+.counter-wrap.row {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+
+    .counter-item {
+        padding-top: 80px;
+        flex-basis: 20%;
+        text-align: center;
+        color: white;
+        margin: auto;
+        background-color: #1048a2;
+        font-size: 4em;
+        height: 300px;
+        border-radius: 10px;
+
+        .counter-num{
+            font-weight: 500;
+        }
+    }
+
+}

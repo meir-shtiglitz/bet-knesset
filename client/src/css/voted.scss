@@ -1,0 +1,27 @@
+.voted-parties{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+
+    .party-edit{
+        margin: 1%;
+        text-align: center;
+        padding: 3%;
+        flex-basis: 14%;
+        border: solid 1px black;
+        border-radius: 10px;
+
+        input{
+            width: 90%;
+            margin: auto;
+        }
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .voted-parties{
+        .party-edit{
+            flex-basis: 100%;
+        }
+    }
+}
