@@ -7,12 +7,14 @@ import '../css/parties-graph.scss'
 function PartiesAvg() {
 
 const [partiesWithAvg, setPartiesWithAvg] = useState([])
+const [betsFromDb, setBetsFromDb] = useState([])
 
 useEffect(()=> {
     const fetchData = async () => {
         const sum = {}
-        const res = await axios.get('http://localhost:4000/api/bets/get')
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/bets/get`)
         console.log('resqqqqq', res)
+        setBetsFromDb(res?.data?.bets)
         res?.data?.bets?.forEach(bet => {
             console.log('bet', bet)
             const { bets } = bet
@@ -31,7 +33,7 @@ useEffect(()=> {
   return (
     <div>
         <table class="graph">
-        <p className='text-end'>שיקלול ממוצע מנדטים מכלל ההימורים (השיקלול ללא חישוב תקרת 120 מנדטים)</p>
+        <p className='text-end'>שיקלול ממוצע מנדטים מ {betsFromDb.length} המהמרים עד כה (השיקלול ללא חישוב תקרת 120 מנדטים)</p>
 	{/* <caption>Bar Chart HTML From HTML Table</caption> */}
             <thead>
                 <tr>

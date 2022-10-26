@@ -17,6 +17,22 @@
         }
     }
 }
+.status-bet{
+    align-items: center;
+    justify-content: space-between;
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    background-color: #1048a2;
+    color: white;
+    padding: 0.2% 5%;
+    width: 100%;
+
+    .btn{
+        background-color: white;
+        color: #1048a2;
+    }
+}
 
 @media screen and (max-width: 600px) {
     .voted-parties{

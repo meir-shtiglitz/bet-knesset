@@ -32,7 +32,7 @@ function Voted() {
             "authorization": token
         }
 
-        const res = await axios.post('http://localhost:4000/api/bets/add',{bets: partiesRes},{headers})
+        const res = await axios.post(`${process.env.REACT_APP_API_URL}/bets/add`,{bets: partiesRes},{headers})
         console.log('res', res)
     }
 
@@ -51,11 +51,13 @@ function Voted() {
                     />
                 )}
             </div>
-            {sum !== 120 
-                ? <div className={`sum-res ${sum < 120 ? '' : 'text-danger'}`}>עד כה חילקת {sum} מתוך 120 מנדטים עליך {sum<120?'לחלק עוד':'להפחית'} {Math.abs(120-sum)} מנדטים</div>
-                : <div className='sum-res text-primary'>חילקת 120 מנדטים כעת אתה יכול לשלוח את ההימור שלך</div>
-            }
-            <button onClick={sendBet} className='btn btn-primary' disabled={sum!==120 || !isValid}>שלח הימור</button>
+            {sum > 0 &&<div className='status-bet'>
+                {sum !== 120 
+                    ? <div className={`sum-res'}`}>עד כה חילקת {sum} מתוך 120 מנדטים עליך {sum<120?'לחלק עוד':'להפחית'} {Math.abs(120-sum)} מנדטים</div>
+                    : <div className='sum-res'>חילקת 120 מנדטים כעת אתה יכול לשלוח את ההימור שלך</div>
+                }
+                <button onClick={sendBet} className='btn btn-primary' disabled={sum!==120 || !isValid}>שלח הימור</button>
+            </div>}
         </div>
     )
 }

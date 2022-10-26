@@ -1,14 +1,19 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import {signin} from "../actions/user"
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
 
+    const navigate = useNavigate();
     const [fields, setFields] = useState({
         nameOrMail:     '',
         password: ''
     })
     const {nameOrMail, password} = fields;
+
+    const {user} = useSelector(state => state);
+    if(user.isAuthenticated) navigate('/')
 
     const state = useSelector(state => state);
     const dispatch = useDispatch();
@@ -19,7 +24,7 @@ const Login = () => {
         console.log(fields);
     }
 
-    const send = (e) => {
+    const send = async(e) => {
         e.preventDefault();
         dispatch(signin({nameOrMail, password}));
     }
