@@ -2,7 +2,16 @@ import axios from "axios";
 import {toast} from "react-toastify";
 import {signinValid, signupValid, validPassword} from "../validations/user";
 import {ApiUrl} from "../apiUrl";
+import Swal from 'sweetalert2'
 
+const wellDone = () => {
+    Swal.fire({
+        title: 'נכנסת בהצלחה',
+        text: 'כעת תוכל להמר ואולי גם לנצח',
+        icon: 'success',
+        confirmButtonText: 'קח אותי להימור'
+    })
+}
 export const signup = data => async dispatch => {
     const {error} = signupValid(data);
     if(error){
@@ -13,14 +22,15 @@ export const signup = data => async dispatch => {
         try{
             const headers = {"Content-Type": "application/json"}
             const user = await axios.post(`${ApiUrl}/user/signup`, data, headers);
-            console.log(user);
-                dispatch({
-                    type: "REGISTER_SUCCESS",
-                    payload: user.data
-                })
+            console.log('user after api call');
+            dispatch({
+                type: "REGISTER_SUCCESS",
+                payload: user.data
+            })
+            wellDone()
         } catch(err){
-                console.log('server error',err.response.data);
-                toast.error(err.response.data.error);
+                console.log('server error',err?.response?.data);
+                toast.error(err?.response?.data?.error);
                 dispatch({
                     type: "REGISTER_FAIL",
                 })
@@ -44,6 +54,7 @@ export const signin = data => async dispatch => {
                 type: "LOGIN_SUCCESS",
                 payload: user.data
             })
+            wellDone()
         } catch(err){
             console.log('server error'+err);
             toast.error(err.response.data);

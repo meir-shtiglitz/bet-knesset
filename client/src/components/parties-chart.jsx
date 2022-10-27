@@ -4,7 +4,7 @@ import PartyGraph from './party-graph'
 import parties from '../parties.json'
 import '../css/parties-graph.scss'
 
-function PartiesAvg() {
+function PartiesChart() {
 
 const [partiesWithAvg, setPartiesWithAvg] = useState([])
 const [betsFromDb, setBetsFromDb] = useState([])
@@ -24,7 +24,7 @@ useEffect(()=> {
             })
         });
         console.log('sum', sum, sum[parties[0].id])
-        const injectPartiesAvg = parties.map(p => ({...p, avg: (sum[p.id] || 0) / res?.data?.bets?.length}))
+        const injectPartiesAvg = parties.map(p => ({...p, avg: ((sum[p.id] || 0) / res?.data?.bets?.length).toFixed(1).replace('.0', '')}))
         console.log('injectPartiesAvg', injectPartiesAvg)
         setPartiesWithAvg(injectPartiesAvg)
     }
@@ -36,10 +36,6 @@ useEffect(()=> {
         <p className='text-end'>שיקלול ממוצע מנדטים מ {betsFromDb.length} המהמרים עד כה (השיקלול ללא חישוב תקרת 120 מנדטים)</p>
 	{/* <caption>Bar Chart HTML From HTML Table</caption> */}
             <thead>
-                <tr>
-                    <th scope="col">Item</th>
-                    <th scope="col">Percent</th>
-                </tr>
             </thead>
             <tbody>
                 {partiesWithAvg.sort((a,b)=>b.avg - a.avg).map(p => <PartyGraph party={p} />)}
@@ -49,4 +45,4 @@ useEffect(()=> {
   )
 }
 
-export default PartiesAvg
+export default PartiesChart

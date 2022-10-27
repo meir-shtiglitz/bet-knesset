@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import {signin} from "../actions/user"
 import { useNavigate } from "react-router-dom";
 
-const Login = () => {
+const Login = ({setIsRegister}) => {
 
     const navigate = useNavigate();
     const [fields, setFields] = useState({
@@ -31,17 +31,19 @@ const Login = () => {
 
     const login_form = () => (
         <form onSubmit={send}>
+            <h1 className="pb-5">על מנת להמר יש לבצע כניסה למערכת</h1>
             <div className="form-group">
-                <label>Email
+                <label>כתובת מייל:
                     <input name="nameOrMail" autoFocus onChange={(e)=>handleChange(e)} value={nameOrMail} className="form-control" />
                 </label>
             </div>
-            <div className="form-group">
-                <label>Password
+            <div className="form-group mt-2">
+                <label>סיסמה:
                     <input type="password" name="password" onChange={(e)=>handleChange(e)} value={password} className="form-control" />
                 </label>
             </div>
-            <button type="submit" className="btn btn-primary">Sign in</button>
+            <button type="submit" className="btn btn-primary mt-2">תכניסו אותי</button>
+            <p className="pointer mt-2" onClick={()=>setIsRegister(true)}>אני רוצה להרשם</p>
         </form>
     )
     return(

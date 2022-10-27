@@ -3,3 +3,7 @@
     top: 5%;
     direction: rtl;
 }
+
+.pointer{
+    cursor: pointer;
+}

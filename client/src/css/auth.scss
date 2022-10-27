@@ -1,0 +1,19 @@
+.auth-wrap{
+    width: 400px;
+    height: 600px;
+    margin: auto;
+    padding: 2%;
+    color: blue;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    form{
+        direction: rtl;
+        text-align: center;
+
+        label{
+            text-align: start;
+        }
+    }
+}

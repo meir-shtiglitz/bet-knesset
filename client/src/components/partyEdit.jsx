@@ -28,8 +28,8 @@ function PartyEdit({party, updateParty, partyRes, setIsValid}) {
     <div className='party-edit'>
         <div className='party-paper'>
             <h1 className='party-letters'>{party.letters}</h1>
-            <p className='party-name'>{party.name}</p>
-            <p className='party-text'>{party.letters}</p>
+            <p className='party-name pt-3'>{party.name} {party.text}</p>
+            {/* <small className='party-text'>{party.text}</small> */}
         </div>
         <input name={party.id} type="number" value={partyRes||''} onBlur={handleLimits} onInput={handleInput} />
         {<div className='err-msg text-danger'>{errMsg}</div>}

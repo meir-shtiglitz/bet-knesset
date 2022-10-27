@@ -6,18 +6,30 @@ import PartyEdit from './partyEdit'
 import '../css/voted.scss'
 import axios from 'axios'
 import { useSelector } from 'react-redux'
+import Modal from './modal'
+import Auth from './auth'
 
 function Voted() {
-    const {token} = useSelector(state => state.user)
+    const {token, isAuthenticated, user} = useSelector(state => state.user)
     const [partiesRes, setPartiesRes] = useState({})
     const [isValid, setIsValid] = useState(false)
-
+    const [showAuthModal, setShowAuthModal] = useState(false)
+    
     useEffect(() => {
         ///get user voted
     }, [])
 
     useEffect(() => {
-        console.log('partiesRes', partiesRes)
+        if(isAuthenticated) setShowAuthModal(false)
+    },[isAuthenticated])
+
+    const sum = Object.values(partiesRes).reduce((a, b) => a + b, 0)
+    
+    useEffect(() => {
+        if(sum > 0 && !isAuthenticated) {
+            setShowAuthModal(true)
+            setPartiesRes({})
+        }
     }, [Object.values(partiesRes)])
 
     const updateParty = (currentParty) => {
@@ -36,10 +48,14 @@ function Voted() {
         console.log('res', res)
     }
 
-    const sum = Object.values(partiesRes).reduce((a, b) => a + b, 0)
 
     return (
         <div className='voted-section'>
+            {showAuthModal &&
+                <Modal closeModalFunc={setShowAuthModal}>
+                    <Auth />
+                </Modal>
+            }
             <div className='voted-parties'>
                 {parties.sort((a, b) => a.id - b.id).map((p, i) =>
                     <PartyEdit
@@ -56,7 +72,7 @@ function Voted() {
                     ? <div className={`sum-res'}`}>עד כה חילקת {sum} מתוך 120 מנדטים עליך {sum<120?'לחלק עוד':'להפחית'} {Math.abs(120-sum)} מנדטים</div>
                     : <div className='sum-res'>חילקת 120 מנדטים כעת אתה יכול לשלוח את ההימור שלך</div>
                 }
-                <button onClick={sendBet} className='btn btn-primary' disabled={sum!==120 || !isValid}>שלח הימור</button>
+                <button onClick={sendBet} className='btn btn-primary mt-2 mb-2' disabled={sum!==120 || !isValid}>שלח הימור</button>
             </div>}
         </div>
     )

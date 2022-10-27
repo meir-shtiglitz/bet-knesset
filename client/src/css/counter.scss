@@ -21,3 +21,14 @@
     }
 
 }
+
+@media screen and (max-width:600px) {
+    .counter-wrap.row {
+        --bs-gutter-x:0;
+        .counter-item {
+            padding-top: 15%;
+            font-size: 1em;
+            height: 120px;
+        }
+    }
+}

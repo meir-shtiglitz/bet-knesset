@@ -9,7 +9,6 @@ import Loader from "./components/loader";
 import { signByToken } from './actions/user';
 import Voted from './components/voted';
 import Logo from './components/logo';
-import PartiesAvg from './components/parties';
 import Home from './components/home';
 // const Home = lazy(() => import('./components/Home'))
 const Login = lazy(() => import('./components/login'));
@@ -37,7 +36,6 @@ const App = () => {
         {/* <Route exact path="/" component={Home} />*/}
         <Route exact path="/" element={<Home />} /> 
         <Route exact path="/logo" element={<Logo />} /> 
-        <Route exact path="/avg" element={<PartiesAvg />} /> 
         <Route exact path="/lorum" element={<Lorum />} /> 
         <Route exact path="/login" element={<Login />} /> 
         <Route exact path="/register" element={<Register />} />

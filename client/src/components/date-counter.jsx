@@ -11,7 +11,7 @@ function DateCounter() {
     },[])
 
     function updateTimer() {
-        const future  = Date.parse("11 01, 2022 07:00:00");
+        const future  = Date.parse("11 01, 2022 06:00:00");
         const now     = new Date();
         const diff    = future - now;
         if(diff < 1){return clearInterval(int);  }
@@ -25,7 +25,6 @@ function DateCounter() {
         const m = mins  - hours * 60;
         const s = secs  - mins  * 60;
       
-        console.log('{d,h,m,s}', {d,h,m,s})
         setCounter({d,h,m,s})
       }
     
