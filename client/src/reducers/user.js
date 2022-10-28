@@ -1,6 +1,7 @@
 const initState = {
     isAuthenticated: false,
-    loading:false
+    loading:false,
+    bets: []
 }
 
 export const user = (state = initState, action) => {
@@ -29,6 +30,11 @@ export const user = (state = initState, action) => {
                 isAuthenticated:false,
                 loading:false,
                 user:null
+            }
+        case "SET_ALL_BETS":
+            return{
+                ...state,
+                bets: payload.bets
             }
             
         default:

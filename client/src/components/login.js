@@ -19,9 +19,9 @@ const Login = ({setIsRegister}) => {
     const dispatch = useDispatch();
 
     const handleChange = (e) => {
-        console.log('state',state);
+        // console.log('state',state);
         setFields({...fields, [e.target.name]: e.target.value});
-        console.log(fields);
+        // console.log(fields);
     }
 
     const send = async(e) => {

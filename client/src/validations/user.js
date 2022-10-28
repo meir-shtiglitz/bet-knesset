@@ -1,7 +1,7 @@
 var Joi = require('joi-browser');
 
 export const signupValid = (user) => {
-    console.log('user',user);
+    // console.log('user',user);
     const schema = Joi.object({
         name: Joi.string().required(),
         email: Joi.string().required().email(),
@@ -11,7 +11,7 @@ export const signupValid = (user) => {
 }
 
 export const signinValid = (user) => {
-    console.log('user',user);
+    // console.log('user',user);
     const schema = Joi.object({
         nameOrMail: Joi.string().required(),
         password: Joi.string().required().min(6)
@@ -20,7 +20,7 @@ export const signinValid = (user) => {
 }
 
 export const validMail = (email) => {
-    console.log('mail',email);
+    // console.log('mail',email);
     const schema = Joi.object({
         email: Joi.string().email().required()
     })
@@ -28,7 +28,7 @@ export const validMail = (email) => {
 }
 
 export const validPassword = (password) => {
-    console.log('password',password);
+    // console.log('password',password);
     const schema = Joi.object({
         password: Joi.string().required().min(6)
     })

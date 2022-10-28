@@ -3,6 +3,10 @@
     flex-wrap: wrap;
     justify-content: space-between;
 
+    .edit-button{
+        flex-basis: 100%;
+        text-align: center;
+    }
     .party-edit{
         position: relative;
         margin: 1%;
@@ -12,12 +16,25 @@
         border: solid 1px black;
         border-radius: 10px;
 
-        input{
+        .wrap-input{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center;
             position: absolute;
             bottom: 10px;
-            left: 10%;
-            width: 80%;
-            margin: auto;
+            left: 5%;
+            width: 90%;
+
+            input{
+                text-align: center;
+                flex-basis: 50%;
+                width: 50%;
+            }
+            input:read-only{
+                background-color: #1048a2;
+                color: white;
+            }
         }
     }
 }
@@ -32,8 +49,8 @@
     padding: 0.2% 5%;
     width: 100%;
 
-    .btn{
-        background-color: white;
+    .btn.btn-primary{
+        background-color: white !important;
         color: #1048a2;
     }
 }
@@ -41,14 +58,16 @@
 @media screen and (max-width: 600px) {
     .voted-parties{
         .party-edit{
-            padding-top: 20%;
+            padding-top: 15%;
             flex-basis: 70%;
             margin: auto;
             height: 250px;
             margin-top: 5%;
 
-            party-letters{
-                font-size: 2rem;
+            .party-letters{
+                font-size: 2.3rem;
+                margin: 0;
+                padding: 0;
             }
         }
     }

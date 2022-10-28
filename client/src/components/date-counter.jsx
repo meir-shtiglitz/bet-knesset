@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import '../css/counter.scss'
-function DateCounter() {
+
+function DateCounter({date}) {
     const [counter, setCounter] = useState({})
     let int;
     useEffect(() => {
@@ -11,7 +12,7 @@ function DateCounter() {
     },[])
 
     function updateTimer() {
-        const future  = Date.parse("11 01, 2022 06:00:00");
+        const future  = Date.parse(date);
         const now     = new Date();
         const diff    = future - now;
         if(diff < 1){return clearInterval(int);  }

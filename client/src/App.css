@@ -7,3 +7,7 @@
 .pointer{
     cursor: pointer;
 }
+
+#root .btn.btn-primary{
+    background-color: #1048a2;
+}

@@ -18,7 +18,7 @@ const CategoryList = ({token}) => {
         const params = {token};
         const headers = {"Content-type": "application/json"}
         const res = await axios.get(`${ApiUrl}/category/list`, {params}, headers);
-        console.log(res);
+        // console.log(res);
         setCategories(res.data.categories);
     }
 

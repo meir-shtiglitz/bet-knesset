@@ -49,7 +49,7 @@ export const signin = data => async dispatch => {
         try{
             const headers = {"Content-Type": "application/json"}
             const user = await axios.post(`${ApiUrl}/user/signin`, data, headers);
-            console.log('the res user',user.data);
+            // console.log('the res user',user.data);
             dispatch({
                 type: "LOGIN_SUCCESS",
                 payload: user.data
@@ -73,7 +73,7 @@ export const signByToken = data => async dispatch => {
                 "Content-Type":"application/json"
             }
             const user = await axios.post(`${ApiUrl}/user/signbytoken`, data, headers);
-            console.log('the res user',user.data);
+            // console.log('the res user',user.data);
             dispatch({
                 type: "LOGIN_BY_TOKEN",
                 payload: user.data
@@ -100,7 +100,7 @@ export const newPassword = data => async dispatch => {
             const headers = {"Content-Type": "application/json"}
         
             const user = await axios.post(`${ApiUrl}/user/profile/update`, setData, {headers});
-            console.log('the res user',user.data);
+            // console.log('the res user',user.data);
             dispatch({
                 type: "NEW_PASSWORD",
                 payload: user.data
@@ -111,5 +111,18 @@ export const newPassword = data => async dispatch => {
                 type: "NEW_PASSWORD_FAIL",
             })
         }
+    }
+}
+
+export const getAllBets = () => async dispatch => {
+    try{
+        const bets = await axios.get(`${process.env.REACT_APP_API_URL}/bets/get`);
+        console.log('the res bets',bets);
+        dispatch({
+            type: "SET_ALL_BETS",
+            payload: {bets: bets.data}
+        })
+    } catch(err){
+        console.log('get all bets error'+err);
     }
 }

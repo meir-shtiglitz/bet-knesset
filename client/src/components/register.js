@@ -32,7 +32,7 @@ const Register = ({setIsRegister}) => {
     const register_form = () => (
         <form onSubmit={send}>
             <h1>על מנת להמר יש לבצע רישום קצרצר</h1>
-            <p>הרישום נועד רק למניעת הצבעות כפולות ועדכונכם לגבי נצחונכם במידה ויהיה</p>
+            <p>לא יעשה שום שימוש בנתונים מלבד זיהוי המנצחים</p>
             <div className="form-group">
                 <label>שם:
                     <input type="name" name="name" autoFocus onChange={(e)=>handleChange(e)} value={name} className="form-control" />
