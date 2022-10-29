@@ -3,6 +3,7 @@ import {toast} from "react-toastify";
 import {signinValid, signupValid, validPassword} from "../validations/user";
 import {ApiUrl} from "../apiUrl";
 import Swal from 'sweetalert2'
+import store from '../store'
 
 const wellDone = () => {
     Swal.fire({
@@ -125,4 +126,17 @@ export const getAllBets = () => async dispatch => {
     } catch(err){
         console.log('get all bets error'+err);
     }
+}
+
+export const updateBets = (newBet) => async dispatch => {
+    const state = store.getState()
+    console.log('state', state)
+    const bets = state.user.bets.filter(b => b._id !== newBet._id)
+    console.log('bets 22', bets)
+    bets.push(newBet)
+    console.log('bets 33', bets)
+        dispatch({
+            type: "UPDATE_BETS",
+            payload: {bets}
+        })
 }

@@ -23,7 +23,7 @@ router.post('/add', isLoged, async (req, res) => {
         console.log('isUpdatBet', isUpdatBet)
         if(isUpdatBet){
             console.log('isUpdatBet is true')
-            const updateBet = Bet.findOneAndUpdate({userId},{bets}).exec()
+            const updateBet = await Bet.findOneAndUpdate({userId},{bets},{new: true}).exec()
             console.log('updateBet555', updateBet)
             res.status(200).json(updateBet)
         } else{

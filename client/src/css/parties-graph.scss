@@ -40,6 +40,12 @@ body, table, input, select, textarea {
 
 }
 
+.bets-num{
+	color: #1655a7;
+	font-size: 1.5em;
+	font-weight: bold;
+}
+
 @supports (display:grid) {
 
 	@media (min-width:32em) {

@@ -37,6 +37,12 @@ export const user = (state = initState, action) => {
                 bets: payload.bets
             }
             
+        case "UPDATE_BETS":
+            return{
+                ...state,
+                bets: payload.bets
+            }
+            
         default:
             return state;
     }

@@ -36,6 +36,11 @@
 }
 
 @media screen and (max-width: 600px) {
+
+    .wrap-modal{
+        height: 100vh;
+    }
+    
   .section-title {
     h1.title {
         font-size: 2rem;

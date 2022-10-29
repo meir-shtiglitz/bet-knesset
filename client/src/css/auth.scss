@@ -17,3 +17,12 @@
         }
     }
 }
+
+@media screen and (max-width:600px) {
+    .auth-wrap{
+        width: 85%;
+        height: 80%;
+        margin: 3% auto;
+    
+    }
+}

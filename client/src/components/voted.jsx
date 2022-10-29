@@ -5,10 +5,12 @@ import parties from '../parties.json'
 import PartyEdit from './partyEdit'
 import '../css/voted.scss'
 import axios from 'axios'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import Modal from './modal'
 import Auth from './auth'
 import Swal from 'sweetalert2'
+import { useNavigate } from 'react-router-dom'
+import { updateBets } from '../actions/user'
 
 function Voted() {
     const {token, isAuthenticated, user, bets} = useSelector(state => state.user)
@@ -17,6 +19,8 @@ function Voted() {
     const [showAuthModal, setShowAuthModal] = useState(false)
     const [isEditMode, setIsEditMode] = useState(true)
     const [isNotFirstBet, setIsNotFirstBet] = useState(false)
+    const navigate = useNavigate()
+    const dispatch = useDispatch()
 
     useEffect(() => {
         if(!isAuthenticated) return
@@ -35,6 +39,7 @@ function Voted() {
             setIsNotFirstBet(true)
         }
     }
+    const isMobileMode = window.innerWidth < 640
 
     const sum = Object.values(partiesRes).reduce((a, b) => a + b, 0)
     
@@ -56,7 +61,6 @@ function Voted() {
             "Content-Type": "application/json",
             "authorization": token
         }
-
         const res = await axios.post(`${process.env.REACT_APP_API_URL}/bets/add`,{bets: partiesRes},{headers})
         .catch(err => {
             console.log('err', err)
@@ -67,10 +71,11 @@ function Voted() {
                 confirmButtonText: 'אישור'
             })
         })
-        // console.log('res', res)
+        console.log('res bet', res)
         if(!res.data) return
         setIsEditMode(false)
         setIsNotFirstBet(true)
+        dispatch( updateBets(res.data) )
         Swal.fire({
             icon: 'success',
             title: 'תודה על השתתפותך',
@@ -79,6 +84,7 @@ function Voted() {
         })
     }
 
+    if(isMobileMode && showAuthModal) navigate('/auth')
 
     return (
         <div className='voted-section'>
@@ -93,7 +99,7 @@ function Voted() {
                         <button
                             onClick={() => isEditMode ? getUserBets() : setIsEditMode(!isEditMode)} 
                             className="btn btn-primary">
-                            {isEditMode ? 'בטל עריכה' : 'ערוך הימור'}
+                            {isEditMode ? 'ביטול עריכה' : 'עריכת הימור'}
                         </button>
                     </div>
                 }

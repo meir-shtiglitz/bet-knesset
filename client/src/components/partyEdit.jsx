@@ -34,6 +34,7 @@ function PartyEdit({party, updateParty, partyRes, setIsValid, isEditMode}) {
         <div className='wrap-input'>
           <span>ההימור שלי: </span>
           <input readOnly={!isEditMode} name={party.id} type="number" value={partyRes||''} onBlur={handleLimits} onInput={handleInput} />
+          <small className='text-unit'>מנדטים</small>
         </div>
         {<div className='err-msg text-danger'>{errMsg}</div>}
     </div>

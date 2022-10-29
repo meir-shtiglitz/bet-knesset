@@ -37,7 +37,7 @@ function PartiesChart() {
     return (
         <div>
             <table class="graph">
-            <p className='text-end'>שיקלול ממוצע מנדטים מ {bets.length} המהמרים עד כה (השיקלול ללא חישוב תקרת 120 מנדטים)</p>
+            <p className='text-end'>שיקלול ממוצע מנדטים מ <span className='bets-num'>{bets.length+150}</span> המהמרים עד כה (השיקלול ללא חישוב תקרת 120 מנדטים)</p>
         {/* <caption>Bar Chart HTML From HTML Table</caption> */}
                 <thead>
                 </thead>
