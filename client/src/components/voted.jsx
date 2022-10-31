@@ -44,6 +44,16 @@ function Voted() {
     const sum = Object.values(partiesRes).reduce((a, b) => a + b, 0)
     
     useEffect(() => {
+        const isPassedVoted = new Date('11 01, 2022 22:00:00') > new Date()
+        if(sum > 0 &&isPassedVoted){
+            setPartiesRes({})
+            return Swal.fire({
+                icon: 'error',
+                text: 'חכו לבחירות הבאות',
+                title: 'זמן ההימורים נגמר',
+                confirmButtonText: 'אישור'
+            })
+        }
         if(sum > 0 && !isAuthenticated) {
             setShowAuthModal(true)
             setPartiesRes({})
@@ -94,6 +104,7 @@ function Voted() {
                 </Modal>
             }
             <div className='voted-parties'>
+                <div className='text-center m-auto edit-button'>ניתן להמר עד שעה לפני סגירת הקלפיות</div>
                 {isNotFirstBet &&
                     <div className='m-auto edit-button'>
                         <button

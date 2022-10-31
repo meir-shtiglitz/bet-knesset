@@ -15,7 +15,7 @@ router.post('/add', isLoged, async (req, res) => {
     if(!userId) return res.status(400).send('עליך להרשם קודם על מנת להמר')
 
     console.log("req.token",userId);
-    const isPassedVoted = moment(new Date('11 01, 2022 06:00:00')).diff(moment(), 'hours') < 0
+    const isPassedVoted = moment(new Date('11 01, 2022 21:00:00')).diff(moment(), 'hours') < 0
     console.log('isPassedVoted', isPassedVoted)
     if(isPassedVoted) return res.status(400).send("Voted is over please wait for the naxt time")
     try {
