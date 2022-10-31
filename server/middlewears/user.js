@@ -3,7 +3,10 @@ const User = require('../model/user');
 
 exports.isLoged = (req, res, next) => {
     console.log('req.headers.authorization', req.headers.authorization)
-    const idFromToken = jwt.decode(req.headers.authorization)._id;
+    let jwtoken = req.headers.authorization.replace('Bearer ', '')
+    console.log('jwtoken', jwtoken)
+    let idFromToken = jwt.decode(jwtoken);
+    idFromToken = idFromToken._id
     console.log('idFromToken', idFromToken)
     if(!idFromToken) return res.status(400).json({err: "you need to signin"})
     req.tokenId = idFromToken;
@@ -17,10 +20,13 @@ exports.isLoged = (req, res, next) => {
 // }
 
 exports.isAdmin = async (req,res,next) => {
-    const user = await User.findById({_id: req.tokenId}).exec();
-    console.log('role', user.role);
-    if (!user || user.role === 0){
-        return res.status(403).json({err:"for Admin only"})
-    }
-    next()
+    console.log('req.tokenId from is admin', req.tokenId)
+    await User.findById(req.tokenId).exec((err, user) => {
+        console.log('role', user);
+        if (!user || user.role === 0){
+            return res.status(403).json({err:"for Admin only"})
+        }
+        next()
+
+    });
 }

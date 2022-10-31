@@ -40,12 +40,11 @@ function Voted() {
         }
     }
     const isMobileMode = window.innerWidth < 640
-
+    const isPassedVoted = new Date('11 01, 2022 22:00:00') < new Date()
     const sum = Object.values(partiesRes).reduce((a, b) => a + b, 0)
     
     useEffect(() => {
-        const isPassedVoted = new Date('11 01, 2022 22:00:00') > new Date()
-        if(sum > 0 &&isPassedVoted){
+        if(sum > 0 && isPassedVoted){
             setPartiesRes({})
             return Swal.fire({
                 icon: 'error',
@@ -104,7 +103,10 @@ function Voted() {
                 </Modal>
             }
             <div className='voted-parties'>
-                <div className='text-center m-auto edit-button'>ניתן להמר עד שעה לפני סגירת הקלפיות</div>
+                {isPassedVoted 
+                    ? <div className='text-center m-auto edit-button text-danger'>זמן ההימורים נגמר אנא המתינו לבחירות הבאות</div>
+                    : <div className='text-center m-auto edit-button'>ניתן להמר עד שעה לפני סגירת הקלפיות</div>
+                }
                 {isNotFirstBet &&
                     <div className='m-auto edit-button'>
                         <button

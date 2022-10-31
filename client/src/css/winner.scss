@@ -1,0 +1,25 @@
+.winner-triger{
+    min-height: 150px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 150px;
+    color: #1048a2;
+    animation: triger 0.5s ease-in infinite;
+}
+
+@keyframes triger {
+    0% {
+        top: 0px;
+        // font-size: 40px;
+    }
+    50% {
+        top: 20px;
+        // font-size: 150px;
+    }
+    100% {
+        top: 0px;
+        // font-size: 40px;
+    }
+}

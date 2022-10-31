@@ -15,7 +15,7 @@ router.post('/add', isLoged, async (req, res) => {
     if(!userId) return res.status(400).send('עליך להרשם קודם על מנת להמר')
 
     console.log("req.token",userId);
-    const isPassedVoted = moment(new Date('11 01, 2022 21:00:00')).diff(moment(), 'hours') < 0
+    const isPassedVoted = moment(new Date('11 01, 2022 23:59:00')).diff(moment(), 'hours') < 0
     console.log('isPassedVoted', isPassedVoted)
     if(isPassedVoted) return res.status(400).send("Voted is over please wait for the naxt time")
     try {
@@ -40,8 +40,64 @@ router.post('/add', isLoged, async (req, res) => {
 router.get('/get', async(req, res) => {
     console.log('get all bets')
    const bets = await Bet.find({});
-   console.log('bets', bets)
+//    console.log('bets', bets)
    res.status(200).json(bets);
+})
+
+router.get('/calculate',isLoged,isAdmin, async(req, res) => {
+    console.log('calculate')
+    await Bet.find({}).exec((error, result) => {
+        console.log('result', result.length)
+        result.forEach(b => {
+            const score = getScore(b.bets, b.updatedAt)
+            b.place = score
+            b.save()
+        });
+        console.log('result after', result)
+        res.send(result)
+    })
+
+    const finalResult = {
+        '1': 31,//ליכוד
+        '2': 26,//לפיד
+        '3': 12,//גנץ
+        '4': 14,//צד
+        '5': 9,//שס
+        '6': 7,//ג
+        '7': 6,//עבודה
+        '8': 6,//ליברמן
+        '9': 5,//מרצ
+        '10': 4,//רעמ
+        '11': 0,//בלד
+        '12': 0,//שקד
+        '13': 5,//חדש
+        '14': 0,//קארה
+        '15': 0,//אבידר
+        '16': 0,//זליכה
+        '17': 0,//מוכתר
+        '18': 0,//עלה ירוק
+    }
+
+    const getScore = (bets, updatedAt) => {
+        let score = 1000
+        for (const p in finalResult) {
+            const p_final = finalResult[p]
+            const u_bet = bets[p] || 0
+            console.log('p', p, 'p_final', p_final, 'u_bet', u_bet)
+            if(p_final === u_bet) {
+                console.log('theSame')
+                score += 0.5
+            } else{
+                let toScore = Math.abs(p_final - u_bet)
+                if(!p_final || !u_bet) toScore -= 2.5
+                console.log('toScore', toScore)
+                score -= toScore
+            }
+        }
+        const diffTime = moment(updatedAt).diff(moment(), 'millisecond')
+        console.log('diffTime', diffTime, updatedAt,moment(updatedAt))
+        return score
+    }
 })
 
 // router.get('/category/:slug', read)
