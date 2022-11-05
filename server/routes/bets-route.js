@@ -39,7 +39,7 @@ router.post('/add', isLoged, async (req, res) => {
 
 router.get('/get', async(req, res) => {
     console.log('get all bets')
-   const bets = await Bet.find({});
+   const bets = await Bet.find({}).populate('userId');
 //    console.log('bets', bets)
    res.status(200).json(bets);
 })
@@ -49,25 +49,25 @@ router.get('/calculate',isLoged,isAdmin, async(req, res) => {
     await Bet.find({}).exec((error, result) => {
         console.log('result', result.length)
         result.forEach(b => {
-            const score = getScore(b.bets, b.updatedAt)
+            const score = getScore(b.bets, b.createdAt)
             b.place = score
             b.save()
         });
-        console.log('result after', result)
+        // console.log('result after', result)
         res.send(result)
     })
 
     const finalResult = {
-        '1': 31,//ליכוד
-        '2': 26,//לפיד
+        '1': 32,//ליכוד
+        '2': 24,//לפיד
         '3': 12,//גנץ
         '4': 14,//צד
-        '5': 9,//שס
+        '5': 11,//שס
         '6': 7,//ג
-        '7': 6,//עבודה
+        '7': 4,//עבודה
         '8': 6,//ליברמן
-        '9': 5,//מרצ
-        '10': 4,//רעמ
+        '9': 0,//מרצ
+        '10': 5,//רעמ
         '11': 0,//בלד
         '12': 0,//שקד
         '13': 5,//חדש
@@ -78,24 +78,26 @@ router.get('/calculate',isLoged,isAdmin, async(req, res) => {
         '18': 0,//עלה ירוק
     }
 
-    const getScore = (bets, updatedAt) => {
+    const getScore = (bets, createdAt) => {
         let score = 1000
         for (const p in finalResult) {
             const p_final = finalResult[p]
             const u_bet = bets[p] || 0
-            console.log('p', p, 'p_final', p_final, 'u_bet', u_bet)
+            // console.log('p', p, 'p_final', p_final, 'u_bet', u_bet)
             if(p_final === u_bet) {
-                console.log('theSame')
+                // console.log('theSame')
                 score += 0.5
             } else{
                 let toScore = Math.abs(p_final - u_bet)
                 if(!p_final || !u_bet) toScore -= 2.5
-                console.log('toScore', toScore)
+                // console.log('toScore', toScore)
                 score -= toScore
             }
         }
-        const diffTime = moment(updatedAt).diff(moment(), 'millisecond')
-        console.log('diffTime', diffTime, updatedAt,moment(updatedAt))
+        const diffTime = moment().diff(moment(createdAt), 'millisecond')
+        console.log('diffTime', diffTime, Number(`0.00${diffTime}`), createdAt,moment(createdAt))
+        score +=Number(`0.00${diffTime}`)
+        console.log('score', score)
         return score
     }
 })

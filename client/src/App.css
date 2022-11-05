@@ -4,6 +4,14 @@
     direction: rtl;
 }
 
+.team-blue{
+    color: #1048a2 !important;
+}
+
+.bg-team-blue{
+    background-color: #1048a2 !important;
+}
+
 .pointer{
     cursor: pointer;
 }

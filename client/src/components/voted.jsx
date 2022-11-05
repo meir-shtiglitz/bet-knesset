@@ -31,7 +31,7 @@ function Voted() {
     const getUserBets = () => {
         const {_id} = user
         console.log('id', user, _id)
-        const userBets = bets.find(b => b.userId === _id)
+        const userBets = bets.find(b => b.userId._id === _id)
         console.log('userBets', userBets)
         if(userBets?.bets){
             setPartiesRes({...userBets?.bets})
@@ -45,7 +45,6 @@ function Voted() {
     
     useEffect(() => {
         if(sum > 0 && isPassedVoted){
-            setPartiesRes({})
             return Swal.fire({
                 icon: 'error',
                 text: 'חכו לבחירות הבאות',

@@ -16,7 +16,7 @@ body, table, input, select, textarea {
 	padding-bottom:0.33em;
 }
 
-.graph tbody tr {
+.graph tbody .party-graph-section {
 	width: 100%;
 	position: relative;
 	display: block;
@@ -102,14 +102,14 @@ body, table, input, select, textarea {
 			bottom:-0.6em;
 		}
 
-		.graph tr {
+		.graph .party-graph-section {
 			position:relative;
 			display:block;
 		}
 
-		.graph tr:hover {
-			z-index:999;
-		}
+		// .graph .party-graph-section:hover {
+		// 	z-index:999;
+		// }
 
 		.graph th,
 		.graph td {
@@ -117,6 +117,9 @@ body, table, input, select, textarea {
 			text-align:center;
 		}
 
+		.graph.winner-graph tbody th {
+			position:relative;
+		}
 		.graph tbody th {
 			position:absolute;
 			top:-3em;
@@ -132,7 +135,7 @@ body, table, input, select, textarea {
 		.graph tbody th:after {
 			content:"";
 		}
-		.graph tbody tr {
+		.graph tbody .party-graph-section {
 			border: none;
 
 			th {
@@ -148,11 +151,26 @@ body, table, input, select, textarea {
 			transition:background 0.5s;
 		}
 
-		.graph tr:hover td {
-			opacity:0.7;
+		// .graph .party-graph-section:hover td {
+		// 	opacity:0.7;
+		// }
+
+		.graph tr.winner-row td span {
+			position: relative;
+			margin: 0;
+			padding: 0 2%;
+			width: 50%;
 		}
 
+		.graph tr.winner-row td {
+			align-items: flex-end;
+			width: 4em;
+			background: transparent;
+			display: flex;
+			margin:-1em 0 0 -1em;
+		}
 		.graph td span {
+			border-radius: 5px 5px 0 0;
 			overflow:hidden;
 			position:absolute;
 			left:50%;
@@ -166,15 +184,15 @@ body, table, input, select, textarea {
 			font-weight:bold;
 			opacity:1;
 			transition:opacity 0.5s;
-      color:white;
+      		color:white;
 		}
 
-		.toggleGraph:checked + table td span,
-		.graph tr:hover td span {
-			width:4em;
-			margin-left:-2em; /* 1/2 the declared width */
-			opacity:1;
-		}
+		// .toggleGraph:checked + table td span,
+		// .graph tr:hover td span {
+		// 	width:4em;
+		// 	margin-left:-2em; /* 1/2 the declared width */
+		// 	opacity:1;
+		// }
 
 
 
