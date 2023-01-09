@@ -28,7 +28,7 @@ app.use('/api/bets', routeBets);
 
 //end midlewars
 
-const buildPath = path.join(__dirname, '..', 'client', 'build');
+const buildPath = path.join(__dirname, 'build');
 app.use(express.static(buildPath));
 
 app.get('*', (req, res, next) => {
