@@ -10,7 +10,7 @@ function Home() {
   return (
     <div className='wrap-app'>
       <SectionTitle title={'תוצאות אמת'}/>
-      <DateCounter date={'11 01, 2022 21:00:00'} />
+      <DateCounter />
       <SectionTitle title={'המנצחים'}/>
       <Winner />
       <SectionTitle title={'סקר הסקרים'}/>

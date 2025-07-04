@@ -1,7 +1,6 @@
 import React from 'react'
 import { useEffect } from 'react'
 import { useState } from 'react'
-import parties from '../parties.json'
 import PartyEdit from './partyEdit'
 import '../css/voted.scss'
 import axios from 'axios'
@@ -11,9 +10,10 @@ import Auth from './auth'
 import Swal from 'sweetalert2'
 import { useNavigate } from 'react-router-dom'
 import { updateBets } from '../actions/user'
+import { ApiUrl } from '../apiUrl'
 
 function Voted() {
-    const {token, isAuthenticated, user, bets} = useSelector(state => state.user)
+    const {token, isAuthenticated, user, bets, parties, session } = useSelector(state => state.user)
     const [partiesRes, setPartiesRes] = useState({})
     const [isValid, setIsValid] = useState(false)
     const [showAuthModal, setShowAuthModal] = useState(false)
@@ -30,17 +30,16 @@ function Voted() {
 
     const getUserBets = () => {
         const {_id} = user
-        console.log('id', user, _id)
         const userBets = bets.find(b => b.userId._id === _id)
         console.log('userBets', userBets)
         if(userBets?.bets){
-            setPartiesRes({...userBets?.bets})
+            setPartiesRes({...userBets?.betsMap})
             setIsEditMode(false)
             setIsNotFirstBet(true)
         }
     }
     const isMobileMode = window.innerWidth < 640
-    const isPassedVoted = new Date('11 01, 2022 22:00:00') < new Date()
+    const isPassedVoted = new Date(session?.endDate) < new Date()
     const sum = Object.values(partiesRes).reduce((a, b) => a + b, 0)
     
     useEffect(() => {
@@ -59,6 +58,7 @@ function Voted() {
     }, [Object.values(partiesRes)])
 
     const updateParty = (currentParty) => {
+        console.log('currentParty', currentParty)
         setPartiesRes(prev => {
             return ({ ...prev, ...currentParty })
         })
@@ -69,7 +69,7 @@ function Voted() {
             "Content-Type": "application/json",
             "authorization": token
         }
-        const res = await axios.post(`${process.env.REACT_APP_API_URL}/bets/add`,{bets: partiesRes},{headers})
+        const res = await axios.post(`${ApiUrl}/bets/add`,{bets: partiesRes, sessionId: session._id},{headers})
         .catch(err => {
             console.log('err', err)
             return Swal.fire({
@@ -98,7 +98,7 @@ function Voted() {
         <div className='voted-section'>
             {showAuthModal &&
                 <Modal closeModalFunc={setShowAuthModal}>
-                    <Auth />
+                    <Auth closeModal={() => setShowAuthModal(false)} />
                 </Modal>
             }
             <div className='voted-parties'>
@@ -117,10 +117,10 @@ function Voted() {
                 }
                 {parties.sort((a, b) => a.id - b.id).map((p, i) =>
                     <PartyEdit
-                        key={p.id}
+                        key={p._id}
                         party={p}
                         updateParty={updateParty}
-                        partyRes={partiesRes[p.id]}
+                        partyRes={partiesRes[p._id]}
                         setIsValid={setIsValid}
                         isEditMode={isEditMode}
                     />

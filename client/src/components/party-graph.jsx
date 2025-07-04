@@ -13,7 +13,7 @@ function partyGraph({party}) {
               <span className='avg-num'>{party.avg}</span>
             </>}
         </th>
-        <td className='bar-graph'><span>{party.avg}</span></td>
+        <td className='bar-graph'><span>{party.avg > 3 ? party.avg : ''}</span></td>
     </tr>
     )
 }

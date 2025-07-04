@@ -6,7 +6,7 @@ import '../css/auth.scss'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 
-function Auth() {
+function Auth({closeModal}) {
     const [isRegister, setIsRegister] = useState(true)
     const {isAuthenticated} = useSelector(state => state.user)
     const navigate = useNavigate()
@@ -17,8 +17,8 @@ function Auth() {
     <div className='auth-wrap card'>
         {
             isRegister 
-            ? <Register setIsRegister={setIsRegister} />
-            : <Login setIsRegister={setIsRegister} />
+            ? <Register closeModal={closeModal} setIsRegister={setIsRegister} />
+            : <Login closeModal={closeModal} setIsRegister={setIsRegister} />
         }
     </div>
   )

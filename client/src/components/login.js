@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import {signin} from "../actions/user"
 import { useNavigate } from "react-router-dom";
 
-const Login = ({setIsRegister}) => {
+const Login = ({closeModal, setIsRegister}) => {
 
     const navigate = useNavigate();
     const [fields, setFields] = useState({
@@ -27,6 +27,7 @@ const Login = ({setIsRegister}) => {
     const send = async(e) => {
         e.preventDefault();
         dispatch(signin({nameOrMail, password}));
+        closeModal()
     }
 
     const login_form = () => (

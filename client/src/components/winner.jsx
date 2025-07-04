@@ -2,29 +2,50 @@ import React, { useState } from 'react'
 import { useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import '../css/winner.scss'
-import parties from '../parties.json'
 import PartyWinnerGraph from './winner-graph'
 
 function Winner() {
 
-    const { bets, user } = useSelector(state => state.user)
+    const { bets, user, result, parties } = useSelector(state => state.user)
     const [partiesWithSum, setPartiesWithSum] = useState([])
     const [isUserBet, setIsUserBet] = useState()
 
-    const betsByPlace = bets.sort((a, b) => b.place - a.place)
+    const betsByPlace = bets.sort((a, b) => b.score - a.score)
     const theWinner = betsByPlace[0]
     console.log('theWinner', theWinner)
 
-    useEffect(() => {
+    const getMapResultByParty = () => {
+        const mapResult = {}
+        result?.results?.forEach(p => {
+            console.log('p', p)
+            mapResult[p.partyId] = p.actualSeats
+        })
+        return mapResult
+    }
+
+    const getMergedPartiesResult = () => {
         const _id = user?._id
         console.log('iddd', user, _id)
-        const userBets = bets.find(b => b.userId._id === _id)?.bets
+        console.log('result', result)
+        const userBets = bets.find(b => b.userId._id === _id)?.betsMap
         if(userBets) setIsUserBet(true)
         console.log('userBets', userBets)
-        const injectPartiesSum = parties.map(p => ({ ...p, winner: (theWinner?.bets[p.id] || 0), userBet: (userBets?.[p.id] || 0 )}))
+        const mapResultByParty = getMapResultByParty()
+        console.log('winnerBets', theWinner?.betsMap?.[parties?.[0]?._id])
+        const orderedData = parties.map(p => (
+            { ...p, final: mapResultByParty[p._id], winner: (theWinner?.betsMap?.[p._id] || 0), userBet: (userBets?.[p._id] || 0 )}
+        ))
+        console.log('orderedData', orderedData)
+        return orderedData
+    }
+
+    useEffect(() => {
+        const injectPartiesSum = getMergedPartiesResult()
         console.log('injectPartiesAvg', injectPartiesSum)
         setPartiesWithSum(injectPartiesSum)
-    }, [betsByPlace, user])
+    }, [betsByPlace, user, result])
+
+    if(!result) return <div className='text-center'><h3>הממנצחים הגדולים יוכרזו לאחר תוצאות האמת</h3></div>
 
     return (
         <div className='winner-section'>

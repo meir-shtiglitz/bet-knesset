@@ -5,7 +5,7 @@ import {toast} from "react-toastify";
 import {ApiUrl} from "../apiUrl";
 import Loader from "./loader";
 import { useNavigate } from "react-router-dom";
-const Register = ({setIsRegister}) => {
+const Register = ({closeModal, setIsRegister}) => {
     const navigate = useNavigate();
     const [fields, setFields] = useState({
         name:     '',
@@ -27,6 +27,7 @@ const Register = ({setIsRegister}) => {
         e.preventDefault();
         password !== confirm ? toast.error('password and confirm are not match') 
         : dispatch(signup({name, email, password}));
+        closeModal()
     }
 
     const register_form = () => (

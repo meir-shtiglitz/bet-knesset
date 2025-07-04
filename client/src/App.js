@@ -35,7 +35,7 @@ const App = () => {
       <Logo />
       <Routes>
         {/* <Route exact path="/" component={Home} />*/}
-        <Route exact path="/" element={<Home />} /> 
+        <Route exact path="/:slug" element={<Home />} /> 
         <Route exact path="/auth" element={<Auth />} /> 
         <Route exact path="/lorum" element={<Lorum />} /> 
         <Route exact path="/login" element={<Login />} /> 

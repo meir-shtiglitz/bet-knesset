@@ -1,18 +1,14 @@
-import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import PartyGraph from './party-graph'
-import parties from '../parties.json'
 import '../css/parties-graph.scss'
 import { useDispatch, useSelector } from 'react-redux'
 import { getAllBets } from '../actions/user'
 
 function PartiesChart() {
 
-    const {bets} = useSelector(state => state.user)
-    console.log('betssss', bets)
+    const {bets, parties} = useSelector(state => state.user)
     const dispatch = useDispatch()
     const [partiesWithAvg, setPartiesWithAvg] = useState([])
-    const [betsFromDb, setBetsFromDb] = useState([])
 
     useEffect(()=> {
         dispatch( getAllBets() )
@@ -20,23 +16,23 @@ function PartiesChart() {
 
     useEffect(() => {
             const sum = {}
-            bets.forEach(bet => {
+            bets?.forEach(bet => {
                 // console.log('bet', bet)
-                const { bets } = bet
-                Object.keys(bets).forEach(party => {
+                const { betsMap } = bet
+                Object.keys(betsMap)?.forEach(party => {
                     // console.log('party', party)
-                    sum[party] ? sum[party] += Number(bets[party]) : sum[party] = Number(bets[party])
+                    sum[party] ? sum[party] += Number(betsMap[party]) : sum[party] = Number(betsMap[party])
                 })
             });
             // console.log('sum', sum, sum[parties[0].id])
-            const injectPartiesAvg = parties.map(p => ({...p, avg: ((sum[p.id] || 0) / bets.length).toFixed(1).replace('.0', '')}))
+            const injectPartiesAvg = parties?.map(p => ({...p, avg: ((sum[p._id] || 0) / bets.length).toFixed(1).replace('.0', '')}))
             // console.log('injectPartiesAvg', injectPartiesAvg)
             setPartiesWithAvg(injectPartiesAvg)
     },[bets])
 
     return (
         <div>
-            <table class="graph">
+            <table class={`graph  ${!parties.length && 'avg-table'}`}>
             <p className='text-end'>שיקלול ממוצע מנדטים מ <span className='bets-num'>{bets.length+156}</span> המהמרים עד כה (השיקלול ללא חישוב תקרת 120 מנדטים)</p>
         {/* <caption>Bar Chart HTML From HTML Table</caption> */}
                 <thead>

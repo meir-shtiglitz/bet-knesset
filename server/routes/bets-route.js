@@ -1,33 +1,36 @@
 const express = require('express')
+const { ObjectId } = require('mongoose').Types;
 const router = express.Router();
 const {isLoged, isAdmin} = require('../middlewears/user');
-const Mails = require("../model/listMails");
 const slugify = require("slugify")
 const moment = require('moment')
 const Bet = require('../model/bets');
-const bets = require('../model/bets');
+const Session = require('../model/sessions');
+const Party = require('../model/parties');
+const Result = require('../model/results');
 
 // router.post('/category/add', requireSignin, isAdmin, create)
 router.post('/add', isLoged, async (req, res) => {
     console.log("req.body",req.body);
     const userId = req.tokenId
-    const {bets} = req.body;
+    const {bets, sessionId} = req.body;
+    console.log('sessionId', sessionId)
+    const session = await Session.findById(sessionId)
+    if(!session) return res.status(400).send('שגיאה במערכת ההימורים')
     if(!userId) return res.status(400).send('עליך להרשם קודם על מנת להמר')
 
     console.log("req.token",userId);
-    const isPassedVoted = moment(new Date('11 01, 2022 23:59:00')).diff(moment(), 'hours') < 0
-    console.log('isPassedVoted', isPassedVoted)
+    const isPassedVoted = moment(new Date(session.endDate)) < new Date()
     if(isPassedVoted) return res.status(400).send("Voted is over please wait for the naxt time")
     try {
-        const isUpdatBet = await Bet.findOne({userId})
-        console.log('isUpdatBet', isUpdatBet)
+        const isUpdatBet = await Bet.findOne({userId, sessionId})
+        const betsToInsert = []
+        Object.keys(bets).map(p => betsToInsert.push({_id: new ObjectId(), partyId: p, predictedSeats: bets[p]}))
         if(isUpdatBet){
-            console.log('isUpdatBet is true')
-            const updateBet = await Bet.findOneAndUpdate({userId},{bets},{new: true}).exec()
-            console.log('updateBet555', updateBet)
+            const updateBet = await Bet.findOneAndUpdate({userId, sessionId},{bets: betsToInsert},{new: true}).exec()
             res.status(200).json(updateBet)
         } else{
-            const bet = await new Bet({userId, bets}).save();
+            const bet = await new Bet({userId, bets: betsToInsert, sessionId}).save();
             console.log(bet);
             res.status(200).json(bet)
         }
@@ -37,11 +40,35 @@ router.post('/add', isLoged, async (req, res) => {
     }
 })
 
-router.get('/get', async(req, res) => {
-    console.log('get all bets')
-   const bets = await Bet.find({}).populate('userId');
+router.get('/get/:slug', async(req, res) => {
+    const slugSession = req.params.slug;
+    console.log('get all bets - slugSession:', slugSession);
+
+    // 1. Get session
+    const session = await Session.findOne({slug: slugSession});
+    const sessionId = session._id
+    console.log('session', session);
+    // 2. Get related parties
+    const parties = await Party.find({ sessionId });
+
+    // 3. Get related bets with user info (optional)
+    const bets = await Bet.find({ sessionId }).populate('userId', '_id name');
+
+    // 4. Get result (assuming only one per session)
+    const result = await Result.findOne({ sessionId });
+
+    // Combine into one object
+    const sessionData = {
+        session,
+        parties,
+        bets,
+        result
+    };
+
+    console.log(sessionData);
+
 //    console.log('bets', bets)
-   res.status(200).json(bets);
+    res.status(200).json(sessionData);
 })
 
 router.get('/calculate',isLoged,isAdmin, async(req, res) => {

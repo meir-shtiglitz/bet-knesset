@@ -1,7 +1,6 @@
 const express = require('express')
 const router = express.Router();
 const {isLoged, isAdmin} = require('../middlewears/user');
-const Mails = require("../model/listMails");
 const slugify = require("slugify")
 
 // router.post('/category/add', requireSignin, isAdmin, create)

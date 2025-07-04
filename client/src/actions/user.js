@@ -4,6 +4,8 @@ import {signinValid, signupValid, validPassword} from "../validations/user";
 import {ApiUrl} from "../apiUrl";
 import Swal from 'sweetalert2'
 import store from '../store'
+import { getSlugFromUrl } from "../utils/api-utils";
+import { mapBetsByParty } from "../utils/data-utils";
 
 const wellDone = () => {
     Swal.fire({
@@ -117,11 +119,25 @@ export const newPassword = data => async dispatch => {
 
 export const getAllBets = () => async dispatch => {
     try{
-        const bets = await axios.get(`${process.env.REACT_APP_API_URL}/bets/get`);
-        console.log('the res bets',bets);
+        const slug = getSlugFromUrl();
+        const res = await axios.get(`${ApiUrl}/bets/get/${slug}`);
+        console.log('the res',res);
+        dispatch({
+            type: "SET_SESSION_DATA",
+            payload: {session: res.data.session}
+        })
+        dispatch({
+            type: "SET_PARTIES",
+            payload: {parties: res.data.parties}
+        })
+        const injectedBetsMap = res.data.bets?.map(b => ({...b, betsMap: mapBetsByParty(b.bets)}))
         dispatch({
             type: "SET_ALL_BETS",
-            payload: {bets: bets.data}
+            payload: {bets: injectedBetsMap}
+        })
+        dispatch({
+            type: "SET_RESULT",
+            payload: {result: res.data.result}
         })
     } catch(err){
         console.log('get all bets error'+err);
@@ -131,6 +147,9 @@ export const getAllBets = () => async dispatch => {
 export const updateBets = (newBet) => async dispatch => {
     const state = store.getState()
     console.log('state', state)
+    console.log('newBet', newBet)
+    newBet.betsMap = mapBetsByParty(newBet.bets)
+    
     const bets = state.user.bets.filter(b => b._id !== newBet._id)
     console.log('bets 22', bets)
     bets.push(newBet)

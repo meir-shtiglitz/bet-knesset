@@ -1,20 +1,25 @@
 import React, { useEffect, useState } from 'react'
 import '../css/counter.scss'
+import { useSelector } from 'react-redux';
 
-function DateCounter({date}) {
-    const [counter, setCounter] = useState({})
+function DateCounter() {
+    const {endDate} = useSelector(state => state.user.session)
+    const [counter, setCounter] = useState({d: '00', h: '00', m: '00', s: '00'})
     let int;
+
     useEffect(() => {
+        if(new Date(endDate) <= new Date() || int) return
         int = setInterval(() => {
                   updateTimer()
             },1000)
         return () => clearInterval(int)
-    },[])
+    },[endDate])
 
     function updateTimer() {
-        const future  = Date.parse(date);
+        const future  = Date.parse(endDate);
         const now     = new Date();
         const diff    = future - now;
+        console.log('endDate', endDate)
         if(diff < 1){return clearInterval(int);  }
         const days  = Math.floor( diff / (1000*60*60*24) );
         const hours = Math.floor( diff / (1000*60*60) );

@@ -1,7 +1,10 @@
 const initState = {
     isAuthenticated: false,
     loading:false,
-    bets: []
+    session: {endDate: new Date()},
+    bets: [],
+    parties: [],
+    result: {}
 }
 
 export const user = (state = initState, action) => {
@@ -31,12 +34,31 @@ export const user = (state = initState, action) => {
                 loading:false,
                 user:null
             }
+        case "SET_SESSION_DATA":
+            return{
+                ...state,
+                session: payload.session
+            }
+                  
+        case "SET_PARTIES":
+            return{
+                ...state,
+                parties: payload.parties
+            }
+        
         case "SET_ALL_BETS":
             return{
                 ...state,
                 bets: payload.bets
             }
-            
+        
+        case "SET_RESULT":
+            console.log('result from reducer', payload)
+            return{
+                ...state,
+                result: payload.result
+            }
+        
         case "UPDATE_BETS":
             return{
                 ...state,

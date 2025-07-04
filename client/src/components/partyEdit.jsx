@@ -12,7 +12,7 @@ function PartyEdit({party, updateParty, partyRes, setIsValid, isEditMode}) {
       setErrMsg(null)
     }
     // console.log('value', value)
-    updateParty({[party.id]:Number(value)})
+    updateParty({[party._id]:Number(value)})
   }
 
   const handleLimits = (e) => {
@@ -27,7 +27,7 @@ function PartyEdit({party, updateParty, partyRes, setIsValid, isEditMode}) {
   return (
     <div className='party-edit'>
         <div className='party-paper'>
-            <h1 className='party-letters'>{party.letters}</h1>
+            <h1 className='party-letters'>{party.chars}</h1>
             <p className='party-name pt-3'>{party.name} {party.text}</p>
             {/* <small className='party-text'>{party.text}</small> */}
         </div>
