@@ -42,10 +42,16 @@ router.post('/add', isLoged, async (req, res) => {
 
 router.get('/get/:slug', async(req, res) => {
     const slugSession = req.params.slug;
-    console.log('get all bets - slugSession:', slugSession);
+    console.log('get all bets - slugSession:', slugSession, 'type slug', typeof slugSession);
 
     // 1. Get session
-    const session = await Session.findOne({slug: slugSession});
+    let session;
+    const allSessions = await Session.find();
+    session = allSessions.find(s => s.slug === slugSession)
+    if(!session){
+        //return last session
+        session = allSessions.sort((a, b) => b.endDate - a.endDate)[0]
+    }
     const sessionId = session._id
     console.log('session', session);
     // 2. Get related parties
@@ -59,6 +65,7 @@ router.get('/get/:slug', async(req, res) => {
 
     // Combine into one object
     const sessionData = {
+        allSessions,
         session,
         parties,
         bets,

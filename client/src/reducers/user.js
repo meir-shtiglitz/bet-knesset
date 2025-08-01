@@ -1,10 +1,14 @@
+import { getSlugFromUrl } from "../utils/api-utils";
+
 const initState = {
     isAuthenticated: false,
-    loading:false,
+    isLoading: false,
+    allSessions: [],
     session: {endDate: new Date()},
     bets: [],
     parties: [],
-    result: {}
+    result: {},
+    selectedSessionSlug: getSlugFromUrl()
 }
 
 export const user = (state = initState, action) => {
@@ -20,7 +24,7 @@ export const user = (state = initState, action) => {
                 ...state,
                 ...payload,
                 isAuthenticated:true,
-                loading:false
+                isLoading:false
             }
         case 'REGISTER_FAIL':
         case 'LOGIN_FAIL':
@@ -31,13 +35,33 @@ export const user = (state = initState, action) => {
                 ...state,
                 token:null,
                 isAuthenticated:false,
-                loading:false,
+                isLoading:false,
                 user:null
             }
+                
+        case "SET_SELECTED_SESSION_SLUG":
+            return{
+                ...state,
+                selectedSessionSlug: payload.slug
+            }        
+        
+        case "SET_ALL_SESSIONS_DATA":
+            return{
+                ...state,
+                allSessions: payload.allSessions
+            }        
+        
         case "SET_SESSION_DATA":
             return{
                 ...state,
                 session: payload.session
+            }        
+        
+        case "SET_IS_LOADING":
+            console.log('set is loading to:', payload.status)
+            return{
+                ...state,
+                isLoading: payload.status
             }
                   
         case "SET_PARTIES":

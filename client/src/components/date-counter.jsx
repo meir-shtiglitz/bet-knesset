@@ -2,13 +2,17 @@ import React, { useEffect, useState } from 'react'
 import '../css/counter.scss'
 import { useSelector } from 'react-redux';
 
+const initCounter = {d: '00', h: '00', m: '00', s: '00'}
+
 function DateCounter() {
     const {endDate} = useSelector(state => state.user.session)
-    const [counter, setCounter] = useState({d: '00', h: '00', m: '00', s: '00'})
+    const [counter, setCounter] = useState(initCounter)
     let int;
 
     useEffect(() => {
-        if(new Date(endDate) <= new Date() || int) return
+        if(new Date(endDate) <= new Date() || int) return setCounter(initCounter)
+
+        updateTimer()
         int = setInterval(() => {
                   updateTimer()
             },1000)

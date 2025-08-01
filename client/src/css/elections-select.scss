@@ -1,0 +1,19 @@
+.select-sessions{
+    width: 20%;
+
+    // Mobile styles
+    @media (max-width: 768px) {
+        width: 90%;
+        margin: 5% auto;
+    }
+
+    select{
+        height: 40px;
+
+        option.selected{
+            background-color: #1048a2;
+            color: #fff;
+        }
+    }
+    
+}

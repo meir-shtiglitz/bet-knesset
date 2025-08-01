@@ -11,6 +11,7 @@ import Voted from './components/voted';
 import Logo from './components/logo';
 import Home from './components/home';
 import Auth from './components/auth';
+import ElectionMenu from './components/electionsMenu';
 // const Home = lazy(() => import('./components/Home'))
 const Login = lazy(() => import('./components/login'));
 const Register = lazy(() => import('./components/register'));
@@ -20,7 +21,8 @@ const Lorum = lazy(() => import('./components/lorum/creator'));
 // const Loader = lazy(() => import('./components/loader'));
 
 const App = () => {
-  
+  const {isLoading} = useSelector(state => ({...state.user}));
+
   const IsUser = () => {
     const dispatch = useDispatch();
     const {isAuthenticated} = useSelector(state => ({...state.user}));
@@ -28,13 +30,16 @@ const App = () => {
     if(token && !isAuthenticated) dispatch(signByToken({token:token}));
   }
 
+  {IsUser()}
+
   return(
     <Suspense fallback={Loader}>
-      {IsUser()}
+      {isLoading && <Loader /> }
       <ToastContainer />
       <Logo />
+      <ElectionMenu />
       <Routes>
-        {/* <Route exact path="/" component={Home} />*/}
+        <Route exact path="/" element={<Home />} />
         <Route exact path="/:slug" element={<Home />} /> 
         <Route exact path="/auth" element={<Auth />} /> 
         <Route exact path="/lorum" element={<Lorum />} /> 

@@ -1,7 +1,7 @@
 // Variables
-$bar-color: rgb(0, 0, 0);
-$ball-color: rgb(202, 21, 21);
-$bg-color: #ffffff;
+$bar-color: #1048a2;
+$ball-color: rgb(255, 255, 255);
+$bg-color: #ffffff1f;
 
 html {
   height: 100%;
@@ -14,8 +14,23 @@ body {
   justify-content: center;
 }
 
+.wrap-loader{
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 100;
+  background-color: #86b6fee2;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  vertical-align: middle;
+}
+
 .loader {
-  
+  vertical-align: middle;
+  margin: 20% auto;
   position: relative;
   width: 75px;
   height: 100px;

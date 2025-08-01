@@ -117,11 +117,29 @@ export const newPassword = data => async dispatch => {
     }
 }
 
-export const getAllBets = () => async dispatch => {
+
+export const setIsLoading = (status) => dispatch => {
+    dispatch({
+        type: "SET_IS_LOADING",
+        payload: {status}
+    })
+}
+
+export const setSelectedSessionSlug = (slug) => dispatch => {
+    dispatch({
+        type: "SET_SELECTED_SESSION_SLUG",
+        payload: {slug}
+    })
+}
+
+export const getAllBets = (slug) => async dispatch => {
     try{
-        const slug = getSlugFromUrl();
+        dispatch (setIsLoading(true) )
         const res = await axios.get(`${ApiUrl}/bets/get/${slug}`);
-        console.log('the res',res);
+        dispatch({
+            type: "SET_ALL_SESSIONS_DATA",
+            payload: {allSessions: res.data.allSessions}
+        })
         dispatch({
             type: "SET_SESSION_DATA",
             payload: {session: res.data.session}
@@ -139,8 +157,12 @@ export const getAllBets = () => async dispatch => {
             type: "SET_RESULT",
             payload: {result: res.data.result}
         })
+        dispatch (setSelectedSessionSlug(res.data.session.slug) )
     } catch(err){
         console.log('get all bets error'+err);
+    }
+    finally {
+        dispatch(setIsLoading(false))
     }
 }
 
