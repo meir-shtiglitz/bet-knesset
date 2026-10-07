@@ -16,10 +16,10 @@ mongoose.connect(process.env.DATABASE, {
   useFindAndModify: false,
   useCreateIndex: true
 }).then(() => console.log("conected to DB"))
-.catch(error =>console.log(error));
+.catch(() => console.error('Database connection failed'));
 
 //midlewars
-app.use(bodyParser.json())
+app.use(bodyParser.json({ limit: '32kb' }))
 
 app.use(cors());
 app.use('/api', routeUser);
@@ -32,7 +32,6 @@ const buildPath = path.join(__dirname, 'build');
 app.use(express.static(buildPath));
 
 app.get('*', (req, res, next) => {
-  console.log('req.baseUrl',req.baseUrl)
   if(!req.baseUrl.includes('api')){
     res.sendFile(`${buildPath}/index.html`);
   } else{

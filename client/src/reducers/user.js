@@ -58,7 +58,6 @@ export const user = (state = initState, action) => {
             }        
         
         case "SET_IS_LOADING":
-            console.log('set is loading to:', payload.status)
             return{
                 ...state,
                 isLoading: payload.status
@@ -77,7 +76,6 @@ export const user = (state = initState, action) => {
             }
         
         case "SET_RESULT":
-            console.log('result from reducer', payload)
             return{
                 ...state,
                 result: payload.result

@@ -18,21 +18,18 @@ const wellDone = () => {
 export const signup = data => async dispatch => {
     const {error} = signupValid(data);
     if(error){
-        console.log ('browser error'+error.details[0].message);
        return toast.error(error.details[0].message);
     } else{
 
         try{
             const headers = {"Content-Type": "application/json"}
             const user = await axios.post(`${ApiUrl}/user/signup`, data, headers);
-            console.log('user after api call');
             dispatch({
                 type: "REGISTER_SUCCESS",
                 payload: user.data
             })
             wellDone()
         } catch(err){
-                console.log('server error',err?.response?.data);
                 toast.error(err?.response?.data?.error);
                 dispatch({
                     type: "REGISTER_FAIL",
@@ -44,7 +41,6 @@ export const signup = data => async dispatch => {
 export const signin = data => async dispatch => {
     const {error} = signinValid(data);
     if(error){
-        console.log ('browser error',error.details[0].message);
         return toast.error(error.details[0].message);
     } else{
 
@@ -52,14 +48,12 @@ export const signin = data => async dispatch => {
         try{
             const headers = {"Content-Type": "application/json"}
             const user = await axios.post(`${ApiUrl}/user/signin`, data, headers);
-            // console.log('the res user',user.data);
             dispatch({
                 type: "LOGIN_SUCCESS",
                 payload: user.data
             })
             wellDone()
         } catch(err){
-            console.log('server error'+err);
             toast.error(err?.response?.data?.error || 'Sign-in failed');
             dispatch({
                 type: "LOGIN_FAIL",
@@ -76,13 +70,11 @@ export const signByToken = data => async dispatch => {
                 "Content-Type":"application/json"
             }
             const user = await axios.post(`${ApiUrl}/user/signbytoken`, data, headers);
-            // console.log('the res user',user.data);
             dispatch({
                 type: "LOGIN_BY_TOKEN",
                 payload: user.data
             })
         } catch(err){
-            console.log('server error'+err);
             dispatch({
                 type: "LOGIN_BY_TOKEN_FAIL",
             })
@@ -91,7 +83,6 @@ export const signByToken = data => async dispatch => {
 
 export const newPassword = data => async dispatch => {
     const {error} = validPassword({password:data.password});
-    console.log(error);
     if (error){
         return toast.error(error.details[0].message);
     }else{
@@ -103,12 +94,10 @@ export const newPassword = data => async dispatch => {
             const headers = {"Content-Type": "application/json"}
         
             const user = await axios.post(`${ApiUrl}/user/forgot/reset`, setData, {headers});
-            // console.log('the res user',user.data);
             toast.success(user.data.message);
             dispatch({ type: "LOGIN_BY_TOKEN_FAIL" });
             return true;
         } catch(err){
-            console.log('server error'+err);
             toast.error(err?.response?.data?.error || 'Password reset failed');
             return false;
         }
@@ -157,7 +146,6 @@ export const getAllBets = (slug) => async dispatch => {
         })
         dispatch (setSelectedSessionSlug(res.data.session.slug) )
     } catch(err){
-        console.log('get all bets error'+err);
     }
     finally {
         dispatch(setIsLoading(false))
@@ -166,14 +154,10 @@ export const getAllBets = (slug) => async dispatch => {
 
 export const updateBets = (newBet) => async dispatch => {
     const state = store.getState()
-    console.log('state', state)
-    console.log('newBet', newBet)
     newBet.betsMap = mapBetsByParty(newBet.bets)
     
     const bets = state.user.bets.filter(b => b._id !== newBet._id)
-    console.log('bets 22', bets)
     bets.push(newBet)
-    console.log('bets 33', bets)
         dispatch({
             type: "UPDATE_BETS",
             payload: {bets}

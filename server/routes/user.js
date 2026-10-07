@@ -7,6 +7,7 @@ const { sendMail } = require('../model/emails');
 const { isLoged, restoreSession } = require('../middlewears/user');
 const { issueToken } = require('../security/tokens');
 const router = express.Router();
+const { rateLimit } = require('../security/rate-limit');
 const safe = handler => async (req, res) => {
     try { await handler(req, res); }
     catch (error) { res.status(error.code === 11000 ? 409 : 503).json({ error: 'Unable to complete request' }); }
@@ -20,31 +21,24 @@ const validate = (schema, body, res) => {
     if (result.error) { res.status(400).json({ error: 'Invalid request fields' }); return null; }
     return result.value;
 };
-// Bounded per-process recovery budget; shared multi-instance limiting remains SEC-07.
-const attempts = new Map();
-function recoveryLimit(req, res, next) {
-    const now = Date.now();
-    for (const [key, value] of attempts) if (value.until <= now) attempts.delete(key);
-    const key = req.ip;
-    const entry = attempts.get(key) || { count: 0, until: now + 15 * 60 * 1000 };
-    if (entry.count >= 10 || (!attempts.has(key) && attempts.size >= 10000)) return res.status(429).json({ error: 'Too many recovery attempts. Try again later.' });
-    entry.count++;
-    attempts.set(key, entry);
-    next();
-}
-router.post('/user/signup', safe(async (req, res) => {
+const recoveryLimit = rateLimit({ limit: 10 });
+const signinLimit = rateLimit({ limit: 20 });
+const signupLimit = rateLimit({ limit: 5 });
+const passwordChangeLimit = rateLimit({ limit: 10 });
+router.post('/user/signup', signupLimit, safe(async (req, res) => {
     const { error } = signupValid(req.body);
     if (error) return res.status(400).json({ error: 'Invalid registration fields' });
     if (await User.findOne({ email: req.body.email })) return res.status(409).json({ error: 'Email already exists' });
-    const user = new User({ name: req.body.name, email: req.body.email, password: req.body.password });
+    const user = new User({ name: req.body.name, email: req.body.email });
+    await user.setPassword(req.body.password);
     await user.save();
     res.json(response(user));
 }));
-router.post('/user/signin', safe(async (req, res) => {
+router.post('/user/signin', signinLimit, safe(async (req, res) => {
     const { error } = signinValid(req.body);
     if (error) return res.status(400).json({ error: 'Invalid sign-in fields' });
     const user = await User.findOne({ $or: [{ name: req.body.nameOrMail }, { email: req.body.nameOrMail }] });
-    if (!user || user.disabled || !user.checkPassword(req.body.password)) return res.status(401).json({ error: "Email or password don't match" });
+    if (!user || user.disabled || !(await user.checkPassword(req.body.password))) return res.status(401).json({ error: "Email or password don't match" });
     res.json(response(user));
 }));
 router.post('/user/signbytoken', restoreSession, (req, res) => {
@@ -73,29 +67,28 @@ router.post('/user/forgot/reset', recoveryLimit, safe(async (req, res) => {
     const data = validate(Joi.object({ token: Joi.string().pattern(/^[a-f0-9]{64}$/).required(), password: password.required() }).required(), req.body, res);
     if (!data) return;
     const pending = new User();
-    pending.password = data.password;
+    await pending.setPassword(data.password);
     // Consume proof, replace credentials and revoke sessions in one atomic operation.
     const user = await User.findOneAndUpdate({ resetTokenHash: hash(data.token), resetExpiresAt: { $gt: new Date() }, disabled: { $ne: true } }, {
-        $set: { hashPasword: String(pending.hashPasword), salt: pending.salt },
-        $unset: { resetTokenHash: '', resetExpiresAt: '' }, $inc: { tokenVersion: 1 }
+        $set: { hashPasword: pending.hashPasword },
+        $unset: { resetTokenHash: '', resetExpiresAt: '', salt: '' }, $inc: { tokenVersion: 1 }
     }, { new: true, runValidators: true });
     if (!user) return res.status(400).json({ error: 'Invalid or expired reset code' });
     res.json({ message: 'Password changed. Please sign in.' });
 }));
-router.post('/user/profile/update', isLoged, safe(async (req, res) => {
+router.post('/user/profile/update', passwordChangeLimit, isLoged, safe(async (req, res) => {
     const data = validate(Joi.object({ name: Joi.string().trim().min(1).max(50), password, currentPassword: password }).or('name', 'password').required(), req.body, res);
     if (!data) return;
-    if (data.password && (!data.currentPassword || !req.user.checkPassword(data.currentPassword))) return res.status(403).json({ error: 'Current password is required' });
+    if (data.password && (!data.currentPassword || !(await req.user.checkPassword(data.currentPassword)))) return res.status(403).json({ error: 'Current password is required' });
     const originalHash = String(req.user.hashPasword);
     const changes = {};
     if (data.name) changes.name = data.name;
     if (data.password) {
-        req.user.password = data.password;
+        await req.user.setPassword(data.password);
         changes.hashPasword = String(req.user.hashPasword);
-        changes.salt = req.user.salt;
     }
     const update = { $set: changes };
-    if (data.password) { update.$inc = { tokenVersion: 1 }; update.$unset = { resetTokenHash: '', resetExpiresAt: '' }; }
+    if (data.password) { update.$inc = { tokenVersion: 1 }; update.$unset = { resetTokenHash: '', resetExpiresAt: '', salt: '' }; }
     const user = await User.findOneAndUpdate({ _id: req.tokenId, disabled: { $ne: true }, hashPasword: originalHash, $or: [{ tokenVersion: req.user.tokenVersion || 0 }, ...(req.user.tokenVersion ? [] : [{ tokenVersion: { $exists: false } }])] }, update, { new: true, runValidators: true });
     if (!user) return res.status(409).json({ error: 'Account changed. Please sign in again.' });
     res.json(response(user));

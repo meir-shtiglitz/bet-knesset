@@ -1,6 +1,6 @@
 # Security and maintenance tasks
 
-Created 2026-10-07. **SEC-01 and SEC-02 are done in source as of 2026-10-08**; other tasks remain open (some received partial improvements). Deployment and live service validation have not been performed. Read [context.md](context.md) and [security-report.md](security-report.md) first. IDs map one-to-one to report findings. Work in priority order, preserve existing user edits, and record files changed, migration steps and verification evidence when closing a task. Use synthetic accounts, an isolated DB and stubbed mail for verification.
+Created 2026-10-07. **SEC-01, SEC-02 and SEC-03 are done in source as of 2026-10-08**; other tasks remain open (some received partial improvements). Deployment and live service validation have not been performed. Read [context.md](context.md) and [security-report.md](security-report.md) first. IDs map one-to-one to report findings. Work in priority order, preserve existing user edits, and record files changed, migration steps and verification evidence when closing a task. Use synthetic accounts, an isolated DB and stubbed mail for verification.
 
 ## Immediate containment and sequencing
 
@@ -30,17 +30,23 @@ Split authenticated profile/password change from public reset. Derive profile ta
 
 Acceptance: unauthenticated profile changes fail; user A cannot change B; known email alone cannot reset; invented/expired/replayed tokens fail; concurrent use succeeds once; valid proof changes only its bound account; response shapes do not reveal account existence. Password writes await DB success and reset does not silently grant unrestricted sessions without policy.
 
+## Additional high-severity hardening (2026-10-08)
+
+SEC-04: removed payload/token/state/error-object debug logs from bets/category routes and client auth actions/reducer; DB connection failure logs a fixed category only. Historical logs/secret rotations and other component debug logs are still unreviewed; finding remains open.
+
+SEC-07: bounded per-IP signup (5), signin (20), profile (10), recovery initiation/reset combined (10) requests per 15 minutes; limits run before expensive password work, emit 429 and Retry-After, cap key maps at 10000, and ignore forwarded headers under default disabled trust proxy. Explicit JSON body cap is 32 KiB. Tests cover predictable limiting. Shared multi-instance limits, per-account login budgets and bounded public reads remain open. Do not enable arbitrary trust proxy to deploy these limits.
+
 ## Partial follow-through on other findings
 
 SEC-04: sensitive auth/validation/mail logs removed; remaining client state/bet logs, historic-log review and rotations are open. SEC-05: one-hour bearer tokens, no new token cookies, version-based password-change/reset/logout revocation; localStorage, refresh design and UI logout remain open. SEC-07: recovery quota/cooldown and plain-text templates added; login/signup/read limits and shared multi-instance quotas remain open. SEC-08: recovery/profile boundaries hardened; broader route validation remains open. SEC-10: certificate bypass removed and sendMail promise returned; real/invalid-certificate delivery verification remains open. SEC-12: auth routes now await writes and handle errors; entrypoint/bets/global errors remain open.
 
-## SEC-03 — Password hash migration
+## SEC-03 — Modern password storage — DONE (2026-10-08)
 
-Priority P1; dependencies: coordinate SEC-02. Files: `server/model/user.js`, auth/reset handlers, dependency files.
+Replaced SHA256 with asynchronous Node crypto scrypt (N=131072, r=8, p=1; 16-byte random salt, 64-byte output, timing-safe comparison). The embedded format fixes allowed parameters so corrupt hashes cannot request arbitrary cost. Password work runs one operation at a time with at most 16 queued jobs; overload returns a safe 503. Signup/change/reset await hashing before persistence; reset retains atomic proof consumption/session revocation. Removed crypto-js and uuid direct dependencies. Shared server policy accepts 6–256 characters without truncation; strict signup/signin validation rejects objects and oversized fields.
 
-Replace SHA256 with Argon2id or another reviewed adaptive password hash. Document chosen cost and benchmark on deployment hardware. Existing `hashPasword` records must remain verifiable through an explicit legacy path only; rehash on successful login or force reset by documented policy. New passwords never use legacy hashing. Preserve field compatibility or provide migration. Apply one server password policy consistently and handle reasonable maximum lengths.
+Development-only breaking policy explicitly authorized by user: no SHA256 compatibility, rehash-on-login or bulk database migration. Existing SHA256 accounts must use recovery (configured stub/real mail as appropriate) or be recreated in an isolated development DB. No records were deleted or modified by this work. Source callers use awaited setPassword/checkPassword; password virtual was removed.
 
-Acceptance: equal passwords receive different salted hashes; old account can log in/migrate per policy; wrong password fails before and after migration; reset stores modern hash; no plaintext persistence; failures do not corrupt records. Legacy stored data is backed up before migration.
+Verification: server HTTP regression suite passes 83 assertions and checks salted hash differences, correct/wrong passwords, rejection of old/corrupt hashes, new/reset password storage, signup policy/operator rejection, no plaintext in records, persistence failures and existing auth/recovery checks. Local benchmark recorded in context; deployment hardware cost/load still needs measurement. OWASP scrypt guidance: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html .
 
 ## SEC-04 — Remove sensitive logs and assess exposure
 

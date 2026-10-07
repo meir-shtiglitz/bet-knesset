@@ -8,6 +8,10 @@ Date: 2026-10-07. Scope: current repository working tree, backend routes/middlew
 
 Evidence: `server/test/critical-security.js`, `server/security/tokens.js`, `server/middlewears/user.js`, `server/routes/user.js`, User model and client auth/recovery changes; full completion notes in [tasks.md](tasks.md). Tests stub DB/mail, so live MongoDB, real SMTP and browser interaction remain unverified. Existing legacy password hashing and dependency vulnerabilities remain open. Several other findings have partial improvements documented in tasks; no additional finding is declared fully closed.
 
+## High-severity continuation (2026-10-08)
+
+SEC-03 is fixed in source: salted asynchronous scrypt replaces SHA256 in every password write/check. Development-only breaking policy rejects old hashes; reset/recreation is required, with no live data migration performed. See tasks.md for costs, policy and verification. SEC-04/07 received additional payload-log removal and authentication limits/32 KiB parser cap; they remain open for historical exposure assessment, distributed controls and bounded reads. Other high findings are still open.
+
 ## Original scan assessment (historical)
 
 **At scan time, critical account takeover paths existed.** Anyone knowing an account email can call the profile endpoint to change its password and obtain its JWT. Anyone knowing a user ID can present an attacker-signed token to impersonate that user; public bet responses reveal participant IDs. Administrative access also becomes reachable if an admin ID is known. Fix these before adding features that rely on identity or roles.
