@@ -12,6 +12,10 @@ Evidence: `server/test/critical-security.js`, `server/security/tokens.js`, `serv
 
 SEC-03 is fixed in source: salted asynchronous scrypt replaces SHA256 in every password write/check. Development-only breaking policy rejects old hashes; reset/recreation is required, with no live data migration performed. See tasks.md for costs, policy and verification. SEC-04/07 received additional payload-log removal and authentication limits/32 KiB parser cap; they remain open for historical exposure assessment, distributed controls and bounded reads. Other high findings are still open.
 
+## Prediction-integrity continuation (2026-10-08)
+
+SEC-06 is fixed in source with strict allocation and party/session validation, date/closed admission checks, compound unique index and atomic upsert. Development-only database recreation/repair prerequisites and admission-time cutoff are documented in tasks.md. Verification: 40 prediction-security assertions with HTTP/JWT/real schema validation and stub DB; real index creation/concurrent MongoDB writes remain untested. SEC-08/12 are partially improved by the validated prediction boundary and safe JSON API/parser errors. Other unresolved findings remain open.
+
 ## Original scan assessment (historical)
 
 **At scan time, critical account takeover paths existed.** Anyone knowing an account email can call the profile endpoint to change its password and obtain its JWT. Anyone knowing a user ID can present an attacker-signed token to impersonate that user; public bet responses reveal participant IDs. Administrative access also becomes reachable if an admin ID is known. Fix these before adding features that rely on identity or roles.

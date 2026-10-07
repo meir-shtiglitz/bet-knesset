@@ -1,6 +1,6 @@
 # Security and maintenance tasks
 
-Created 2026-10-07. **SEC-01, SEC-02 and SEC-03 are done in source as of 2026-10-08**; other tasks remain open (some received partial improvements). Deployment and live service validation have not been performed. Read [context.md](context.md) and [security-report.md](security-report.md) first. IDs map one-to-one to report findings. Work in priority order, preserve existing user edits, and record files changed, migration steps and verification evidence when closing a task. Use synthetic accounts, an isolated DB and stubbed mail for verification.
+Created 2026-10-07. **SEC-01, SEC-02, SEC-03 and SEC-06 are done in source as of 2026-10-08**; other tasks remain open (some received partial improvements). Deployment and live service validation have not been performed. Read [context.md](context.md) and [security-report.md](security-report.md) first. IDs map one-to-one to report findings. Work in priority order, preserve existing user edits, and record files changed, migration steps and verification evidence when closing a task. Use synthetic accounts, an isolated DB and stubbed mail for verification.
 
 ## Immediate containment and sequencing
 
@@ -64,13 +64,17 @@ Choose one explicit transport: HttpOnly Secure SameSite cookie with CSRF protect
 
 Acceptance: expiry enforced, old sessions rejected after reset, logout behaves as documented, cookie attributes verified where applicable, refresh replay rejected if supported. If cookie auth is selected, cross-site mutation attempts fail and allowed frontend origins still work.
 
-## SEC-06 — Enforce prediction rules and uniqueness
+## SEC-06 — Enforce prediction rules and uniqueness — DONE IN SOURCE (2026-10-08)
 
-Priority P1; dependencies: SEC-01 and SEC-12 error foundation. Files: `server/routes/bets-route.js`, bets/party/session models, `voted.jsx` and response adapters.
+`server/security/predictions.js` strictly validates body/IDs, rejects unknown fields/operators, limits allocations to 120 parties, requires integer seats 0–120 and total 120. Every submitted party must belong to the selected election; omitted parties mean zero. Seats 1–3 are allowed; the client now uses the same rule rather than enforcing a separate last-edited-field threshold. Session must explicitly have isClosed=false, finite ordered start/end dates, and start <= admission time < end. Open state is reread immediately before database mutation and duplicate retry. Admission time, not database completion time, determines cutoff; concurrent admin closure after the final read is not serialized with a bet write.
 
-Validate body shape, ObjectIds, bounded party count, numeric finite integer seats 0–120 and total exactly 120. Check each party belongs to requested session. Enforce valid start/end times and isClosed on server; decide zero/omitted party semantics and exact deadline inclusivity. Add compound unique `{userId, sessionId}` index after reviewing/deduplicating existing records with backup. Use atomic upsert with update validators; preserve initial creation time. Address deadline-crossing writes if scoring requires strict cutoff. Return consistent populated user shape or normalize client expectations.
+`Bets` corrects required/ref flags, validates seat allocation/duplicate party IDs, declares unique `{userId, sessionId}` index with autoIndex=true. Submission waits for successful model/index initialization and uses atomic validated upsert; duplicate insert race retries one non-upserting owned update. Original creation timestamp is preserved by timestamps/upsert semantics. Mutation response provides populated-shaped userId with only ID/name. Submission budget: 30 per IP per 15 minutes.
 
-Acceptance: negative/fraction/string/oversized/incorrect-total values and cross-session parties fail; closed/future/expired sessions reject; valid 120-seat bet creates/updates own record; parallel first submissions leave one record; missing references fail. Verify client renders the mutation without assuming populated fields that are absent.
+`voted.jsx` validates all values together, handles session switches/empty own bets, honors date/closed state and avoids sorting Redux parties in place. `partyEdit.jsx` accepts only integer values 0–120 with matching HTML limits. Related SEC-08 input boundaries and SEC-12 safe errors are improved; those findings remain open overall.
+
+Verification: `npm test --prefix server` passes 83 identity/recovery assertions and 40 prediction assertions using real HTTP/JWT/Mongoose validators plus stub database adapters. Includes unauthenticated requests, bad IDs/operators/types/totals, wrong-election parties, valid create/update, safe database/index failure, retry after simulated duplicate insert, populated response, model required/allocation/index constraints and exact start/end inclusivity. No real MongoDB index build or parallel insert test was performed; this must be verified on an isolated database before deployment. Client production build succeeds in `/tmp/bet-knesset-prediction-security-build` with existing tooling/lint warnings; no artifacts copied into server/build.
+
+Development migration policy: no compatibility path/dedup migration. Recreate an isolated development database or manually repair invalid/duplicate predictions before building the compound unique index. No existing DATABASE connection, data deletion, index operation or backup was performed. Existing sessions without explicit isClosed=false or valid dates reject writes. Index failure causes safe 503 instead of silently continuing without uniqueness.
 
 ## SEC-07 — Abuse controls, bounded reads and safe email
 
@@ -145,3 +149,7 @@ After P0/P1 fixes, establish a repeatable API integration suite covering identit
 Resolve during implementation: public prediction visibility; exact voting deadline/timezone; zero-valued omitted parties; canonical email handling; explicit admin role values; cookie versus bearer transport; session revocation behavior; ranking/tie-break algorithm; how sessions/parties/results are managed; whether categories/lorum are intended features. These decisions should not block independent P0 repairs.
 
 Completion record per task: status, date, changed files, checks and results, data migration/backups, remaining limitations, and updates to context/report. Future feature requests should name affected flows and preserve security invariants in context.md.
+
+## Error-boundary follow-through (2026-10-08)
+
+Server entrypoint now returns JSON 404 for unknown `/api` routes before the SPA fallback and safe JSON for malformed/oversized bodies and forwarded errors. Startup readiness, legacy scoring/category handlers and all asynchronous reads remain pending SEC-12/14; these tasks are not closed by this change.

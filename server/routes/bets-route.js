@@ -1,5 +1,4 @@
 const express = require('express')
-const { ObjectId } = require('mongoose').Types;
 const router = express.Router();
 const {isLoged, isAdmin} = require('../middlewears/user');
 const slugify = require("slugify")
@@ -9,31 +8,44 @@ const Session = require('../model/sessions');
 const Party = require('../model/parties');
 const Result = require('../model/results');
 
-// router.post('/category/add', requireSignin, isAdmin, create)
-router.post('/add', isLoged, async (req, res) => {
-    const userId = req.tokenId
-    const {bets, sessionId} = req.body;
-    const session = await Session.findById(sessionId)
-    if(!session) return res.status(400).send('שגיאה במערכת ההימורים')
-    if(!userId) return res.status(400).send('עליך להרשם קודם על מנת להמר')
-
-    const isPassedVoted = moment(new Date(session.endDate)) < new Date()
-    if(isPassedVoted) return res.status(400).send("Voted is over please wait for the naxt time")
+const { validatePrediction, isOpen } = require('../security/predictions');
+const { rateLimit } = require('../security/rate-limit');
+router.post('/add', rateLimit({ limit: 30 }), isLoged, async (req, res) => {
+    const data = validatePrediction(req.body);
+    if (!data) return res.status(400).json({ error: 'Invalid prediction. Allocate exactly 120 integer seats.' });
     try {
-        const isUpdatBet = await Bet.findOne({userId, sessionId})
-        const betsToInsert = []
-        Object.keys(bets).map(p => betsToInsert.push({_id: new ObjectId(), partyId: p, predictedSeats: bets[p]}))
-        if(isUpdatBet){
-            const updateBet = await Bet.findOneAndUpdate({userId, sessionId},{bets: betsToInsert},{new: true}).exec()
-            res.status(200).json(updateBet)
-        } else{
-            const bet = await new Bet({userId, bets: betsToInsert, sessionId}).save();
-            res.status(200).json(bet)
+        const session = await Session.findById(data.sessionId);
+        if (!session) return res.status(404).json({ error: 'Election not found' });
+        if (!isOpen(session)) return res.status(403).json({ error: 'Election is closed for predictions' });
+        const parties = await Party.find({ sessionId: data.sessionId }).select('_id');
+        const allowed = new Set(parties.map(party => String(party._id)));
+        if (Object.keys(data.bets).some(id => !allowed.has(id))) return res.status(400).json({ error: 'Party does not belong to this election' });
+        // Fail closed until the compound unique index has been built successfully.
+        await Bet.init();
+        // Re-read after potentially slow index/party work; cutoff is checked at
+        // write admission. Database completion may occur after the cutoff.
+        if (!isOpen(await Session.findById(data.sessionId))) return res.status(403).json({ error: 'Election is closed for predictions' });
+        const filter = { userId: req.tokenId, sessionId: data.sessionId };
+        const update = { $set: { bets: Object.entries(data.bets).map(([partyId, predictedSeats]) => ({ partyId, predictedSeats })) } };
+        const options = { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true };
+        let bet;
+        try {
+            bet = await Bet.findOneAndUpdate(filter, update, options);
+        } catch (error) {
+            if (error.code !== 11000) throw error;
+            // A concurrent first insert won the unique-index race. Update only
+            // the same user's record, without another insert attempt.
+            if (!isOpen(await Session.findById(data.sessionId))) return res.status(403).json({ error: 'Election is closed for predictions' });
+            bet = await Bet.findOneAndUpdate(filter, update, { ...options, upsert: false });
+            if (!bet) return res.status(409).json({ error: 'Prediction changed. Please retry.' });
         }
+        const result = bet.toObject();
+        result.userId = { _id: req.user._id, name: req.user.name };
+        res.json(result);
     } catch (error) {
-        res.status(400).send("Create bet failed: "+error)
+        res.status(503).json({ error: 'Unable to save prediction' });
     }
-})
+});
 
 router.get('/get/:slug', async(req, res) => {
     const slugSession = req.params.slug;

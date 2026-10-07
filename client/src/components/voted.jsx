@@ -15,7 +15,6 @@ import { ApiUrl } from '../apiUrl'
 function Voted() {
     const {token, isAuthenticated, user, bets, parties, session } = useSelector(state => state.user)
     const [partiesRes, setPartiesRes] = useState({})
-    const [isValid, setIsValid] = useState(false)
     const [showAuthModal, setShowAuthModal] = useState(false)
     const [isEditMode, setIsEditMode] = useState(true)
     const [isNotFirstBet, setIsNotFirstBet] = useState(false)
@@ -26,20 +25,26 @@ function Voted() {
         if(!isAuthenticated) return
         setShowAuthModal(false)
         getUserBets()
-    },[bets, isAuthenticated])
+    },[bets, isAuthenticated, session?._id])
 
     const getUserBets = () => {
         const {_id} = user
-        const userBets = bets.find(b => b.userId._id === _id)
-        console.log('userBets', userBets)
+        const userBets = bets.find(b => b.userId?._id === _id && String(b.sessionId) === String(session?._id))
         if(userBets?.bets){
             setPartiesRes({...userBets?.betsMap})
             setIsEditMode(false)
             setIsNotFirstBet(true)
+        } else {
+            setPartiesRes({})
+            setIsEditMode(true)
+            setIsNotFirstBet(false)
         }
     }
     const isMobileMode = window.innerWidth < 640
-    const isPassedVoted = new Date(session?.endDate) < new Date()
+    const isPassedVoted = session?.isClosed !== false ||
+        !session?.startDate || !session?.endDate ||
+        !(new Date(session.startDate) <= new Date() && new Date() < new Date(session.endDate))
+    const isValid = Object.values(partiesRes).every(value => Number.isInteger(value) && value >= 0 && value <= 120)
     const sum = Object.values(partiesRes).reduce((a, b) => a + b, 0)
     
     useEffect(() => {
@@ -58,7 +63,6 @@ function Voted() {
     }, [Object.values(partiesRes)])
 
     const updateParty = (currentParty) => {
-        console.log('currentParty', currentParty)
         setPartiesRes(prev => {
             return ({ ...prev, ...currentParty })
         })
@@ -71,7 +75,6 @@ function Voted() {
         }
         const res = await axios.post(`${ApiUrl}/bets/add`,{bets: partiesRes, sessionId: session._id},{headers})
         .catch(err => {
-            console.log('err', err)
             return Swal.fire({
                 icon: 'error',
                 title: 'אופסססס',
@@ -79,7 +82,6 @@ function Voted() {
                 confirmButtonText: 'אישור'
             })
         })
-        console.log('res bet', res)
         if(!res.data) return
         setIsEditMode(false)
         setIsNotFirstBet(true)
@@ -115,13 +117,12 @@ function Voted() {
                         </button>
                     </div>
                 }
-                {parties.sort((a, b) => a.id - b.id).map((p, i) =>
+                {[...parties].sort((a, b) => a.id - b.id).map((p, i) =>
                     <PartyEdit
                         key={p._id}
                         party={p}
                         updateParty={updateParty}
                         partyRes={partiesRes[p._id]}
-                        setIsValid={setIsValid}
                         isEditMode={isEditMode}
                     />
                 )}
@@ -131,7 +132,7 @@ function Voted() {
                     ? <div className={`sum-res'}`}>עד כה חילקת {sum} מתוך 120 מנדטים עליך {sum<120?'לחלק עוד':'להפחית'} {Math.abs(120-sum)} מנדטים</div>
                     : <div className='sum-res'>חילקת 120 מנדטים כעת אתה יכול לשלוח את ההימור שלך</div>
                 }
-                <button onClick={sendBet} className='btn btn-primary mt-2 mb-2' disabled={sum!==120 || !isValid}>שלח הימור</button>
+                <button onClick={sendBet} className='btn btn-primary mt-2 mb-2' disabled={sum!==120 || !isValid || isPassedVoted}>שלח הימור</button>
             </div>}
         </div>
     )

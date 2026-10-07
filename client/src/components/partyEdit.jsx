@@ -1,42 +1,20 @@
-import React, { useState } from 'react'
+import React from 'react'
 
-function PartyEdit({party, updateParty, partyRes, setIsValid, isEditMode}) {
-  const [errMsg, setErrMsg] = useState()
-
-  const handleInput = (e) => {
-    const value = !isNaN(e) ? e : e?.target?.value
-    if(value < 4 && (value > 0 || value < 0)){
-      setIsValid(false)
-    } else{
-      setIsValid(true)
-      setErrMsg(null)
-    }
-    // console.log('value', value)
-    updateParty({[party._id]:Number(value)})
-  }
-
-  const handleLimits = (e) => {
-    const {value} = e.target
-    // console.log('value', value)
-    if(value < 4 && (value > 0 || value < 0)){
-      handleInput(0)
-      return setErrMsg('אחוז החסימה פה קצת קשוח, או 4 או כלום...')
-    }
-    setErrMsg(null)
-  }
+function PartyEdit({party, updateParty, partyRes, isEditMode}) {
+  const valid = partyRes === undefined || (Number.isInteger(partyRes) && partyRes >= 0 && partyRes <= 120)
+  const handleInput = e => updateParty({[party._id]: e.target.value === '' ? 0 : e.target.valueAsNumber})
   return (
     <div className='party-edit'>
         <div className='party-paper'>
             <h1 className='party-letters'>{party.chars}</h1>
             <p className='party-name pt-3'>{party.name} {party.text}</p>
-            {/* <small className='party-text'>{party.text}</small> */}
         </div>
         <div className='wrap-input'>
           <span>ההימור שלי: </span>
-          <input readOnly={!isEditMode} name={party.id} type="number" value={partyRes||''} onBlur={handleLimits} onInput={handleInput} />
+          <input readOnly={!isEditMode} name={party.id} type="number" min="0" max="120" step="1" value={partyRes ?? ''} onChange={handleInput} />
           <small className='text-unit'>מנדטים</small>
         </div>
-        {<div className='err-msg text-danger'>{errMsg}</div>}
+        {!valid && <div className='err-msg text-danger'>יש להזין מספר שלם בין 0 ל־120</div>}
     </div>
   )
 }
