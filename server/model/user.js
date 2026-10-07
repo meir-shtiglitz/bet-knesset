@@ -21,6 +21,11 @@ const userSchema = new mongoose.Schema({
         required: true,
     },
     salt: String,
+    tokenVersion: { type: Number, default: 0 },
+    disabled: { type: Boolean, default: false },
+    resetTokenHash: { type: String, select: false },
+    resetExpiresAt: { type: Date, select: false },
+    resetRequestedAt: { type: Date, select: false },
     role: {
         type:Number,
         default: 0

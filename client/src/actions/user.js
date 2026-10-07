@@ -60,7 +60,7 @@ export const signin = data => async dispatch => {
             wellDone()
         } catch(err){
             console.log('server error'+err);
-            toast.error(err.response.data);
+            toast.error(err?.response?.data?.error || 'Sign-in failed');
             dispatch({
                 type: "LOGIN_FAIL",
             })
@@ -97,22 +97,20 @@ export const newPassword = data => async dispatch => {
     }else{
         try{
             const setData = {
-                email: data.email,
+                token: data.token,
                 password: data.password
             }
             const headers = {"Content-Type": "application/json"}
         
-            const user = await axios.post(`${ApiUrl}/user/profile/update`, setData, {headers});
+            const user = await axios.post(`${ApiUrl}/user/forgot/reset`, setData, {headers});
             // console.log('the res user',user.data);
-            dispatch({
-                type: "NEW_PASSWORD",
-                payload: user.data
-            })
+            toast.success(user.data.message);
+            dispatch({ type: "LOGIN_BY_TOKEN_FAIL" });
+            return true;
         } catch(err){
             console.log('server error'+err);
-            dispatch({
-                type: "NEW_PASSWORD_FAIL",
-            })
+            toast.error(err?.response?.data?.error || 'Password reset failed');
+            return false;
         }
     }
 }

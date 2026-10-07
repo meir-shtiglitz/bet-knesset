@@ -67,7 +67,7 @@ function Voted() {
     const sendBet = async () => {
         const headers = {
             "Content-Type": "application/json",
-            "authorization": token
+            "authorization": `Bearer ${token}`
         }
         const res = await axios.post(`${ApiUrl}/bets/add`,{bets: partiesRes, sessionId: session._id},{headers})
         .catch(err => {
