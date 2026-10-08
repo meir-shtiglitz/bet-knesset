@@ -1,8 +1,7 @@
 const express = require('express')
 const router = express.Router();
-const {isLoged, isAdmin} = require('../middlewears/user');
-const slugify = require("slugify")
-const moment = require('moment')
+const {isLoged} = require('../middlewears/user');
+const Joi = require('joi');
 const Bet = require('../model/bets');
 const Session = require('../model/sessions');
 const Party = require('../model/parties');
@@ -47,106 +46,28 @@ router.post('/add', rateLimit({ limit: 30 }), isLoged, async (req, res) => {
     }
 });
 
-router.get('/get/:slug', async(req, res) => {
-    const slugSession = req.params.slug;
-
-    // 1. Get session
-    let session;
-    const allSessions = await Session.find();
-    session = allSessions.find(s => s.slug === slugSession)
-    if(!session){
-        //return last session
-        session = allSessions.sort((a, b) => b.endDate - a.endDate)[0]
+// Keep full-response charts correct: fail rather than silently truncating data.
+// Pagination/aggregate endpoints remain SEC-07/11 follow-up for larger elections.
+const readSchema = Joi.object({ slug: Joi.string().min(1).max(100).pattern(/^[\p{L}\p{N}_-]+$/u).required() });
+router.get('/get/:slug', rateLimit({ limit: 60 }), async (req, res, next) => {
+    if (readSchema.validate(req.params, { convert: false }).error || Object.keys(req.query).length) {
+        return res.status(400).json({ error: 'Invalid election request' });
     }
-    const sessionId = session._id
-    // 2. Get related parties
-    const parties = await Party.find({ sessionId });
+    try {
+        const allSessions = await Session.find().select('_id slug name description startDate endDate isClosed').sort({ endDate: -1 }).limit(101);
+        if (allSessions.length > 100) return res.status(503).json({ error: 'Election list exceeds response capacity' });
+        if (!allSessions.length) return res.status(404).json({ error: 'No elections available' });
+        // Unknown slugs explicitly fail; home uses "latest" for latest election.
+        const session = req.params.slug === 'latest' ? allSessions[0] : allSessions.find(s => s.slug === req.params.slug);
+        if (!session) return res.status(404).json({ error: 'Election not found' });
+        const parties = await Party.find({ sessionId: session._id }).select('_id sessionId name chars subtext').limit(121);
+        const bets = await Bet.find({ sessionId: session._id }).select('_id userId sessionId bets score place createdAt updatedAt').sort({ _id: 1 }).limit(1001).populate('userId', '_id name');
+        if (parties.length > 120 || bets.length > 1000) return res.status(503).json({ error: 'Election data exceeds response capacity' });
+        const result = await Result.findOne({ sessionId: session._id }).select('_id sessionId results publishedAt');
+        res.json({ allSessions, session, parties, bets, result });
+    } catch (error) { next(error); }
+});
 
-    // 3. Get related bets with user info (optional)
-    const bets = await Bet.find({ sessionId }).populate('userId', '_id name');
-
-    // 4. Get result (assuming only one per session)
-    const result = await Result.findOne({ sessionId });
-
-    // Combine into one object
-    const sessionData = {
-        allSessions,
-        session,
-        parties,
-        bets,
-        result
-    };
-
-
-    res.status(200).json(sessionData);
-})
-
-router.get('/calculate',isLoged,isAdmin, async(req, res) => {
-    await Bet.find({}).exec((error, result) => {
-        result.forEach(b => {
-            const score = getScore(b.bets, b.createdAt)
-            b.place = score
-            b.save()
-        });
-        res.send(result)
-    })
-
-    const finalResult = {
-        '1': 32,//ליכוד
-        '2': 24,//לפיד
-        '3': 12,//גנץ
-        '4': 14,//צד
-        '5': 11,//שס
-        '6': 7,//ג
-        '7': 4,//עבודה
-        '8': 6,//ליברמן
-        '9': 0,//מרצ
-        '10': 5,//רעמ
-        '11': 0,//בלד
-        '12': 0,//שקד
-        '13': 5,//חדש
-        '14': 0,//קארה
-        '15': 0,//אבידר
-        '16': 0,//זליכה
-        '17': 0,//מוכתר
-        '18': 0,//עלה ירוק
-    }
-
-    const getScore = (bets, createdAt) => {
-        let score = 1000
-        for (const p in finalResult) {
-            const p_final = finalResult[p]
-            const u_bet = bets[p] || 0
-            if(p_final === u_bet) {
-                score += 0.5
-            } else{
-                let toScore = Math.abs(p_final - u_bet)
-                if(!p_final || !u_bet) toScore -= 2.5
-                score -= toScore
-            }
-        }
-        const diffTime = moment().diff(moment(createdAt), 'millisecond')
-        score +=Number(`0.00${diffTime}`)
-        return score
-    }
-})
-
-// router.get('/category/:slug', read)
-router.put('/category/update/:slug', isLoged, isAdmin, (req, res)=> {
-    Category.findOne({slug: req.params.slug}, (err, cat) => {
-        cat.name = req.body.name;
-        cat.slug = slugify(req.body.name)
-        cat.save();
-        return res.status(200).send('done');
-    })
-})
-
-router.delete('/category/delete/:slug', isLoged, isAdmin, (req, res) => {
-    Category.deleteOne({slug: req.params.slug}).exec((response) => {
-        res.status(200).send('done');
-    });
-})
-
-
-
+// Retired unsafe legacy mutation: scoring must be rebuilt as a session-scoped POST.
+router.get('/calculate', (req, res) => res.status(405).json({ error: 'Legacy scoring is disabled' }));
 module.exports = router;

@@ -12,12 +12,10 @@ function Winner() {
 
     const betsByPlace = bets.sort((a, b) => b.score - a.score)
     const theWinner = betsByPlace[0]
-    console.log('theWinner', theWinner)
 
     const getMapResultByParty = () => {
         const mapResult = {}
         result?.results?.forEach(p => {
-            console.log('p', p)
             mapResult[p.partyId] = p.actualSeats
         })
         return mapResult
@@ -25,23 +23,17 @@ function Winner() {
 
     const getMergedPartiesResult = () => {
         const _id = user?._id
-        console.log('iddd', user, _id)
-        console.log('result', result)
         const userBets = bets.find(b => b.userId._id === _id)?.betsMap
         if(userBets) setIsUserBet(true)
-        console.log('userBets', userBets)
         const mapResultByParty = getMapResultByParty()
-        console.log('winnerBets', theWinner?.betsMap?.[parties?.[0]?._id])
         const orderedData = parties.map(p => (
             { ...p, final: mapResultByParty[p._id], winner: (theWinner?.betsMap?.[p._id] || 0), userBet: (userBets?.[p._id] || 0 )}
         ))
-        console.log('orderedData', orderedData)
         return orderedData
     }
 
     useEffect(() => {
         const injectPartiesSum = getMergedPartiesResult()
-        console.log('injectPartiesAvg', injectPartiesSum)
         setPartiesWithSum(injectPartiesSum)
     }, [betsByPlace, user, result])
 

@@ -1,6 +1,9 @@
 import { getSlugFromUrl } from "../utils/api-utils";
 
 const initState = {
+    token: null,
+    expiresAt: null,
+    user: null,
     isAuthenticated: false,
     isLoading: false,
     allSessions: [],
@@ -11,15 +14,14 @@ const initState = {
     selectedSessionSlug: getSlugFromUrl()
 }
 
+const clearAuth = state => ({ ...state, token: null, expiresAt: null, isAuthenticated: false, isLoading: false, user: null });
+
 export const user = (state = initState, action) => {
     const { type, payload } = action;
 
     switch(type){
         case "REGISTER_SUCCESS":
         case "LOGIN_SUCCESS":
-        case "LOGIN_BY_TOKEN":
-        case "NEW_PASSWORD":
-            localStorage.setItem('token',payload.token);
             return{
                 ...state,
                 ...payload,
@@ -28,17 +30,11 @@ export const user = (state = initState, action) => {
             }
         case 'REGISTER_FAIL':
         case 'LOGIN_FAIL':
-        case "LOGIN_BY_TOKEN_FAIL":
-        case "NEW_PASSWORD_FAIL":
-            localStorage.removeItem('token');
-            return{
-                ...state,
-                token:null,
-                isAuthenticated:false,
-                isLoading:false,
-                user:null
-            }
-                
+        case "LOGOUT":
+            return clearAuth(state);
+        case 'SESSION_EXPIRED':
+            return state.token === action.token ? clearAuth(state) : state;
+
         case "SET_SELECTED_SESSION_SLUG":
             return{
                 ...state,

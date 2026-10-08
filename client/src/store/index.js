@@ -7,9 +7,7 @@ const initState = {};
 const store = createStore(
         reducer,
         initState,
-        composeWithDevTools(
-            applyMiddleware(thunk)
-        )
+        process.env.NODE_ENV === 'production' ? applyMiddleware(thunk) : composeWithDevTools(applyMiddleware(thunk))
     );
 
 export default store;

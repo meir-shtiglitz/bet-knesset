@@ -1,47 +1,39 @@
-const express = require("express");
-const app = express();
-const path = require("path");
+const mongoose = require('mongoose');
+const { createApp } = require('./app');
+const Bet = require('./model/bets');
 
-const mongoose = require("mongoose");
-const bodyParser = require("body-parser");
-require("dotenv").config();
-const routeUser = require('./routes/user');
-const routeBets = require('./routes/bets-route');
-const cors = require("cors");
-
-//connect to DB 
-mongoose.connect(process.env.DATABASE, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  useFindAndModify: false,
-  useCreateIndex: true
-}).then(() => console.log("conected to DB"))
-.catch(() => console.error('Database connection failed'));
-
-//midlewars
-app.use(bodyParser.json({ limit: '32kb' }))
-
-app.use(cors());
-app.use('/api', routeUser);
-app.use('/api/bets', routeBets);
-app.use('/api', (req, res) => res.status(404).json({ error: 'API endpoint not found' }));
-
-
-//end midlewars
-
-const buildPath = path.join(__dirname, 'build');
-app.use(express.static(buildPath));
-
-app.get('*', (req, res) => res.sendFile(`${buildPath}/index.html`));
-app.use((error, req, res, next) => {
-  if (res.headersSent) return next(error);
-  const status = error.type === 'entity.too.large' ? 413 :
-    error.type === 'entity.parse.failed' ? 400 : 503;
-  res.status(status).json({ error: status === 413 ? 'Request body too large' :
-    status === 400 ? 'Invalid JSON body' : 'Unable to complete request' });
-});
-
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-  console.log('runnnn '+ port)
-})
+async function start({ env = process.env, connect = (...args) => mongoose.connect(...args),
+    initialize = () => Bet.init(), create = createApp } = {}) {
+    if (typeof env.DATABASE !== 'string' || !/^mongodb(?:\+srv)?:\/\//.test(env.DATABASE) ||
+        typeof env.JWT_SECRET !== 'string' || Buffer.byteLength(env.JWT_SECRET) < 32) {
+        throw new Error('DATABASE and a JWT_SECRET of at least 32 bytes are required');
+    }
+    const port = env.PORT === undefined ? 4000 : Number(env.PORT);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT');
+    try {
+        await connect(env.DATABASE, {
+            useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false,
+            useCreateIndex: true, serverSelectionTimeoutMS: 10000
+        });
+        await initialize();
+        const app = create();
+        const server = await new Promise((resolve, reject) => {
+            const listener = app.listen(port, () => resolve(listener));
+            listener.once('error', reject);
+        });
+        server.requestTimeout = 15000;
+        server.headersTimeout = 10000;
+        return server;
+    } catch (error) {
+        await mongoose.disconnect().catch(() => {});
+        throw new Error('Server startup failed');
+    }
+}
+if (require.main === module) {
+    require('dotenv').config();
+    start().then(() => console.info('Server ready')).catch(() => {
+        console.error('Server startup failed; check configuration, database and indexes');
+        process.exitCode = 1;
+    });
+}
+module.exports = { start };

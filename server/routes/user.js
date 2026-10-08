@@ -5,14 +5,14 @@ const User = require('../model/user');
 const { signupValid, signinValid } = require('../validation/user');
 const { sendMail } = require('../model/emails');
 const { isLoged, restoreSession } = require('../middlewears/user');
-const { issueToken } = require('../security/tokens');
+const { issueToken, verifyToken } = require('../security/tokens');
 const router = express.Router();
 const { rateLimit } = require('../security/rate-limit');
 const safe = handler => async (req, res) => {
     try { await handler(req, res); }
     catch (error) { res.status(error.code === 11000 ? 409 : 503).json({ error: 'Unable to complete request' }); }
 };
-const response = (user, token = issueToken(user)) => ({ token, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
+const response = (user, token = issueToken(user)) => ({ token, expiresAt: verifyToken(token).exp * 1000, user: { _id: user._id, name: user.name, email: user.email, role: user.role } });
 const password = Joi.string().min(6).max(256);
 const email = Joi.string().email().max(100);
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -41,11 +41,11 @@ router.post('/user/signin', signinLimit, safe(async (req, res) => {
     if (!user || user.disabled || !(await user.checkPassword(req.body.password))) return res.status(401).json({ error: "Email or password don't match" });
     res.json(response(user));
 }));
-router.post('/user/signbytoken', restoreSession, (req, res) => {
+router.post('/user/signbytoken', rateLimit({ limit: 60 }), restoreSession, (req, res) => {
     // Restore state without extending the existing access token lifetime.
     res.json(response(req.user, req.body.token));
 });
-router.post('/user/signout', isLoged, safe(async (req, res) => {
+router.post('/user/signout', rateLimit({ limit: 30 }), isLoged, safe(async (req, res) => {
     await User.updateOne({ _id: req.tokenId }, { $inc: { tokenVersion: 1 } });
     res.clearCookie('token');
     res.json({ message: 'Signed out of all sessions' });

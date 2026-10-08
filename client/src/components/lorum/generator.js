@@ -9,10 +9,8 @@ export const Generator = () => {
         const wordLength = randNum(2,7);
         var newWord = '';
         for(let i = 0; i<wordLength; i++){
-            // console.log(wordLength)
             newWord += randomLetter();
         }
-        // console.log('newWord: ',newWord);
         return newWord;
     }
     const senc = () => {

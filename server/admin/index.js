@@ -14,7 +14,6 @@ const addSession = async () => {
         isClosed: false,
     })
     session.save();
-    console.log('new session:', session)
 }
 
 const addParties = async () => {

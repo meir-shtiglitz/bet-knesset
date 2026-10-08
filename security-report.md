@@ -16,6 +16,14 @@ SEC-03 is fixed in source: salted asynchronous scrypt replaces SHA256 in every p
 
 SEC-06 is fixed in source with strict allocation and party/session validation, date/closed admission checks, compound unique index and atomic upsert. Development-only database recreation/repair prerequisites and admission-time cutoff are documented in tasks.md. Verification: 40 prediction-security assertions with HTTP/JWT/real schema validation and stub DB; real index creation/concurrent MongoDB writes remain untested. SEC-08/12 are partially improved by the validated prediction boundary and safe JSON API/parser errors. Other unresolved findings remain open.
 
+## Session, logging and startup continuation (2026-10-08)
+
+SEC-05 fixed in source: one-hour bearer tokens live only in memory; reload requires sign-in, expiry/401 clear auth, logout clears local state and revokes server sessions when request succeeds. No refresh/cookie auth. SEC-12 fixed for mounted API: app factory, configuration validation, awaited DB/index readiness, safe startup/parser/API/read errors; unsafe legacy scoring/category mutation routes retired. Remaining SEC-14 scoring/schema work is open.
+
+SEC-04/07/08 received further debug-log removal, request-ID-only central failure logging, strict bounded election reads, restoration/logout quotas and bounded lazy mail transport. Historical exposure, shared multi-instance/per-account budgets, larger-election aggregation/pagination, privacy and remaining schema/seed boundaries are still open. SEC-10 TLS configuration is tested with a stub, not a real certificate handshake.
+
+Verification: 166 backend assertions, mail stub checks, 6 client tests and successful production build with warnings. No live database/mail/deployment or credential changes. See tasks.md/context.md for exact policy/config limits.
+
 ## Original scan assessment (historical)
 
 **At scan time, critical account takeover paths existed.** Anyone knowing an account email can call the profile endpoint to change its password and obtain its JWT. Anyone knowing a user ID can present an attacker-signed token to impersonate that user; public bet responses reveal participant IDs. Administrative access also becomes reachable if an admin ID is known. Fix these before adding features that rely on identity or roles.

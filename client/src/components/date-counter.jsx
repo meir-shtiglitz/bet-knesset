@@ -23,7 +23,6 @@ function DateCounter() {
         const future  = Date.parse(endDate);
         const now     = new Date();
         const diff    = future - now;
-        console.log('endDate', endDate)
         if(diff < 1){return clearInterval(int);  }
         const days  = Math.floor( diff / (1000*60*60*24) );
         const hours = Math.floor( diff / (1000*60*60) );

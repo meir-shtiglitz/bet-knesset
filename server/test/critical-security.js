@@ -120,6 +120,7 @@ async function status(path, data, token, expected) {
     await status('/protected', {}, token, 200);
     const restored = await status('/api/user/signbytoken', { token }, undefined, 200);
     assert.equal(restored.body.token, token); checks++;
+    assert.equal(restored.body.expiresAt, valid.exp * 1000); checks++;
     await status('/admin', {}, token, 403);
     await status('/admin', {}, issueToken(oddRole), 403);
     await status('/admin', {}, issueToken(admin), 200);

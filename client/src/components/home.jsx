@@ -14,7 +14,6 @@ function Home() {
   const dispatch = useDispatch()
 
   useEffect(()=> {
-        console.log('from Home effect - selectedSessionSlug', selectedSessionSlug);
         dispatch( getAllBets(selectedSessionSlug) )
     },[selectedSessionSlug])
 

@@ -1,6 +1,6 @@
 # Security and maintenance tasks
 
-Created 2026-10-07. **SEC-01, SEC-02, SEC-03 and SEC-06 are done in source as of 2026-10-08**; other tasks remain open (some received partial improvements). Deployment and live service validation have not been performed. Read [context.md](context.md) and [security-report.md](security-report.md) first. IDs map one-to-one to report findings. Work in priority order, preserve existing user edits, and record files changed, migration steps and verification evidence when closing a task. Use synthetic accounts, an isolated DB and stubbed mail for verification.
+Created 2026-10-07. **SEC-01, SEC-02, SEC-03, SEC-05, SEC-06 and SEC-12 are done in source as of 2026-10-08**; other tasks remain open (some received partial improvements). Deployment and live service validation have not been performed. Read [context.md](context.md) and [security-report.md](security-report.md) first. IDs map one-to-one to report findings. Work in priority order, preserve existing user edits, and record files changed, migration steps and verification evidence when closing a task. Use synthetic accounts, an isolated DB and stubbed mail for verification.
 
 ## Immediate containment and sequencing
 
@@ -56,7 +56,7 @@ Replace full payload/header/user/transport logging with minimal structured event
 
 Acceptance: capture logs during success and failure paths using sentinel secrets; none appear. Useful request IDs and safe failure categories remain. Record any exposure review limitations and completed rotation actions.
 
-## SEC-05 — Token lifetime, transport and revocation
+## SEC-05 — Token lifetime, transport and revocation — DONE IN SOURCE (2026-10-08)
 
 Priority P1; dependencies: SEC-01/02. Files: JWT issuers, signout, user schema/session storage, Redux auth and API callers.
 
@@ -116,7 +116,7 @@ Confirm whether names and individual predictions are meant to be public before/d
 
 Acceptance: unauthenticated response matches documented policy and excludes private user fields; A cannot request B's private bet; aggregates equal validated source bets; bounded leaderboards work without downloading all participant records.
 
-## SEC-12 — Consistent errors and reliable persistence
+## SEC-12 — Consistent errors and reliable persistence — DONE FOR MOUNTED API (2026-10-08)
 
 Priority P2 (auth failure handling is part of P0); dependencies: none. Files: entrypoint and all routes/middleware.
 
@@ -153,3 +153,15 @@ Completion record per task: status, date, changed files, checks and results, dat
 ## Error-boundary follow-through (2026-10-08)
 
 Server entrypoint now returns JSON 404 for unknown `/api` routes before the SPA fallback and safe JSON for malformed/oversized bodies and forwarded errors. Startup readiness, legacy scoring/category handlers and all asynchronous reads remain pending SEC-12/14; these tasks are not closed by this change.
+
+## Session, logging, reads and startup continuation (2026-10-08)
+
+SEC-05: one-hour bearer access token stored only in Redux memory. Reload/new tab requires login; no refresh tokens or cookies are issued. Older browser-storage tokens are deleted without reading/restoring them. API returns verified expiresAt; hook clears matching auth on timeout/focus/visibility/401, cancels old timers and prevents late failures for an older token clearing a newer session. Logout clears local auth immediately and calls authenticated server signout (all sessions revoked); server failure is reported and does not imply successful global revocation. Production Redux DevTools disabled. Six client tests cover storage removal, expiry, replacement race, current-token 401 and logout success/failure. Active-page XSS could still access memory; memory-only transport reduces persisted exposure, not all XSS risk.
+
+SEC-04: removed remaining client debug payload logs and admin session dump. Central errors log only generated request ID and a fixed event; parser/database sentinel values do not appear in captured logs. Historical/provider logs and credentials were not accessed or rotated, so exposure review remains open.
+
+SEC-07/08: election reads limited to 60/IP/15min with strict bounded slug and no query fields. Verified token restoration/signout limits are 60/30 respectively. Explicit projections and database limits cap full-response reads at 100 sessions, 120 parties, 1000 predictions; exceeding a cap returns safe 503 rather than biased/truncated chart data. Default endpoint slug is now `latest`; unknown slugs return 404. UI displays read failures. Shared multi-instance/per-account budgets and aggregate/pagination replacement remain open. Lazy Gmail TLS transport reads configured credentials after dotenv, verifies certificates, limits concurrency to 2 plus 20 queued jobs, and applies connection/greeting/socket timeouts. Stub transport tests cover configuration and overload, not a real invalid-certificate handshake; SEC-10 remains open for that check.
+
+SEC-12: `server/app.js` creates the Express application without loading dotenv, connecting DB or listening. `server/index.js` validates DATABASE, JWT_SECRET >=32 bytes and PORT; awaits MongoDB and prediction index initialization before opening listener, bounds DB selection/request/header timeouts, disconnects on failed startup and emits safe fixed failure text. Mounted async reads forward errors; API/parser errors remain safe JSON. GET scoring disabled with 405 and undefined-model category mutations removed; their replacements remain SEC-14. Existing unmounted category code/admin scripts are outside this mounted-API completion and remain SEC-14 work.
+
+Verification: 84 identity/recovery + 40 prediction + 42 application/read/startup assertions pass, plus bounded-mail stub checks and 6 client tests. Production client build succeeds in `/tmp/bet-knesset-session-security-build` with existing lint/tooling warnings. No live MongoDB, index build/concurrency exercise, SMTP/TLS delivery, log-provider access, credential rotation or deployment. Required development config: MongoDB URI, at least 32-byte JWT_SECRET; USER_MAIL/PASS_MAIL required when recovery delivery is used. Weak previous development secrets must be replaced locally; no compatibility exception.

@@ -4,7 +4,6 @@ import {signinValid, signupValid, validPassword} from "../validations/user";
 import {ApiUrl} from "../apiUrl";
 import Swal from 'sweetalert2'
 import store from '../store'
-import { getSlugFromUrl } from "../utils/api-utils";
 import { mapBetsByParty } from "../utils/data-utils";
 
 const wellDone = () => {
@@ -63,23 +62,16 @@ export const signin = data => async dispatch => {
 }
 
 
-export const signByToken = data => async dispatch => {
-        
-        try{
-            const headers = {
-                "Content-Type":"application/json"
-            }
-            const user = await axios.post(`${ApiUrl}/user/signbytoken`, data, headers);
-            dispatch({
-                type: "LOGIN_BY_TOKEN",
-                payload: user.data
-            })
-        } catch(err){
-            dispatch({
-                type: "LOGIN_BY_TOKEN_FAIL",
-            })
-        }
-}
+export const signout = () => async (dispatch, getState) => {
+    const token = getState().user.token;
+    dispatch({ type: 'LOGOUT' });
+    if (!token) return;
+    try {
+        await axios.post(`${ApiUrl}/user/signout`, {}, { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 });
+    } catch (error) {
+        if (error?.response?.status !== 401) toast.error('יצאת מהמכשיר. ביטול שאר ההתחברויות נכשל, נסה שוב לאחר כניסה.');
+    }
+};
 
 export const newPassword = data => async dispatch => {
     const {error} = validPassword({password:data.password});
@@ -95,7 +87,7 @@ export const newPassword = data => async dispatch => {
         
             const user = await axios.post(`${ApiUrl}/user/forgot/reset`, setData, {headers});
             toast.success(user.data.message);
-            dispatch({ type: "LOGIN_BY_TOKEN_FAIL" });
+            dispatch({ type: "LOGOUT" });
             return true;
         } catch(err){
             toast.error(err?.response?.data?.error || 'Password reset failed');
@@ -122,7 +114,7 @@ export const setSelectedSessionSlug = (slug) => dispatch => {
 export const getAllBets = (slug) => async dispatch => {
     try{
         dispatch (setIsLoading(true) )
-        const res = await axios.get(`${ApiUrl}/bets/get/${slug}`);
+        const res = await axios.get(`${ApiUrl}/bets/get/${slug || 'latest'}`);
         dispatch({
             type: "SET_ALL_SESSIONS_DATA",
             payload: {allSessions: res.data.allSessions}
@@ -146,6 +138,7 @@ export const getAllBets = (slug) => async dispatch => {
         })
         dispatch (setSelectedSessionSlug(res.data.session.slug) )
     } catch(err){
+        toast.error(err?.response?.data?.error || 'לא ניתן לטעון את נתוני הבחירות');
     }
     finally {
         dispatch(setIsLoading(false))

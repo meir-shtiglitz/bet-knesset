@@ -6,8 +6,8 @@ import {ToastContainer} from 'react-toastify';
 import "react-toastify/dist/ReactToastify.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Loader from "./components/loader";
-import { signByToken } from './actions/user';
-import Voted from './components/voted';
+import { signout } from './actions/user';
+import useAuthSession from './hooks/use-auth-session';
 import Logo from './components/logo';
 import Home from './components/home';
 import Auth from './components/auth';
@@ -21,22 +21,19 @@ const Lorum = lazy(() => import('./components/lorum/creator'));
 // const Loader = lazy(() => import('./components/loader'));
 
 const App = () => {
-  const {isLoading} = useSelector(state => ({...state.user}));
-
-  const IsUser = () => {
-    const dispatch = useDispatch();
-    const {isAuthenticated} = useSelector(state => ({...state.user}));
-    const token = localStorage.getItem('token');
-    if(token && !isAuthenticated) dispatch(signByToken({token:token}));
-  }
-
-  {IsUser()}
+  const {isLoading, isAuthenticated, user} = useSelector(state => state.user);
+  const dispatch = useDispatch();
+  useAuthSession();
 
   return(
-    <Suspense fallback={Loader}>
+    <Suspense fallback={<Loader />}>
       {isLoading && <Loader /> }
       <ToastContainer />
       <Logo />
+      {isAuthenticated && <div className="text-center mb-3">
+        <span>{user?.name} </span>
+        <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => dispatch(signout())}>יציאה מכל ההתחברויות</button>
+      </div>}
       <ElectionMenu />
       <Routes>
         <Route exact path="/" element={<Home />} />
