@@ -5,22 +5,32 @@ cd "$repo_root"
 config_file="$HOME/.config/bet-knesset-deploy.env"
 if [[ -f "$config_file" ]]; then source "$config_file"; fi
 DEPLOY_BRANCH=${DEPLOY_BRANCH:-deploy}
-APP_ROOT=${APP_ROOT:-/home/n66cb45/bet-knesset-deploy}
-NODE_BIN=${NODE_BIN:-/opt/cpanel/ea-nodejs16/bin}
+APP_ROOT=${APP_ROOT:-$repo_root}
+APP_BASE_PATH=${APP_BASE_PATH:-/bet}
+NODE_ACTIVATE=${NODE_ACTIVATE:-$HOME/nodevenv/bet-knesset-deploy/16/bin/activate}
 branch=$(git symbolic-ref --short HEAD)
 if [[ "$branch" != "$DEPLOY_BRANCH" ]]; then
     printf 'Skipping branch %s; deployment branch is %s.\n' "$branch" "$DEPLOY_BRANCH"
     exit 0
 fi
-[[ "$APP_ROOT" =~ ^/home/[^/]+/.+ && "$APP_ROOT" != *'/../'* && "$APP_ROOT" != */.. ]]
-mkdir -p "$APP_ROOT"
 app_root=$(cd "$APP_ROOT" && pwd -P)
-if [[ "$app_root" == "$repo_root" || "$app_root" == "$repo_root/"* || "$repo_root" == "$app_root/"* ]]; then
-    echo 'Repository and application directories must not overlap.' >&2
+if [[ "$app_root" != "$repo_root" ]]; then
+    echo 'This deployment expects the cPanel app root to be the Git repository.' >&2
     exit 1
 fi
-[[ -x "$NODE_BIN/node" && -x "$NODE_BIN/npm" ]]
-export PATH="$NODE_BIN:$PATH"
+APP_BASE_PATH=${APP_BASE_PATH%/}
+[[ -z "$APP_BASE_PATH" || "$APP_BASE_PATH" =~ ^(/[a-zA-Z0-9_-]+)+$ ]]
+if [[ -n "${NODE_BIN:-}" ]]; then
+    [[ -x "$NODE_BIN/node" && -x "$NODE_BIN/npm" ]]
+    export PATH="$NODE_BIN:$PATH"
+else
+    [[ -f "$NODE_ACTIVATE" ]]
+    set +u
+    source "$NODE_ACTIVATE"
+    set -u
+fi
+command -v node >/dev/null
+command -v npm >/dev/null
 command -v rsync >/dev/null
 staging=$(mktemp -d)
 trap 'rm -rf "$staging"' EXIT
@@ -31,14 +41,13 @@ if (( node_major >= 17 )); then
 fi
 (
     cd client
-    CI=false REACT_APP_API_URL=/api BUILD_PATH="$staging/build" node node_modules/react-scripts/scripts/build.js
+    CI=false PUBLIC_URL="$APP_BASE_PATH" REACT_APP_API_URL="$APP_BASE_PATH/api" BUILD_PATH="$staging/build" node node_modules/react-scripts/scripts/build.js
 )
-rsync -a --exclude=node_modules --exclude=build --exclude=.env --exclude='.env.*' --exclude=test server/ "$staging/"
+# Install in staging before replacing the app's existing dependencies/build.
+cp server/package.json server/package-lock.json "$staging/"
 npm ci --omit=dev --prefix "$staging"
-# Only copy app files after build and dependency installation succeed.
-rsync -a --exclude=build --exclude=node_modules "$staging/" "$app_root/"
-mkdir -p "$app_root/build" "$app_root/node_modules" "$app_root/tmp"
-rsync -a --delete "$staging/build/" "$app_root/build/"
-rsync -a --delete "$staging/node_modules/" "$app_root/node_modules/"
-touch "$app_root/tmp/restart.txt"
+mkdir -p server/build server/node_modules tmp
+rsync -a --delete "$staging/build/" server/build/
+rsync -a --delete "$staging/node_modules/" server/node_modules/
+touch tmp/restart.txt
 echo 'Deployment complete; Passenger restart requested.'

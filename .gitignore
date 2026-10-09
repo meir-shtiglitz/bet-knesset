@@ -5,3 +5,8 @@
 /client/node_modules
 /client/build
 /server/build
+/.env
+/node_modules
+/tmp
+/public
+/index.js.cpanel-starter
