@@ -33,7 +33,9 @@ APP_BASE_PATH=/bet
 NODE_ACTIVATE=/home/n66cb45/nodevenv/bet-knesset-deploy/16/bin/activate
 ```
 
-For a domain-root URL use `APP_BASE_PATH=`. Rebuild after changing URL paths.
+For a domain-root URL use `APP_BASE_PATH=`. For a different subpath, set
+APP_BASE_PATH in both this deployment config and the Node app environment.
+Rebuild after changing URL paths.
 Alternatively set NODE_BIN to a directory containing the correct Node and npm.
 The hosting server needs rsync and enough resources to build React.
 

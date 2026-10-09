@@ -13,6 +13,9 @@ const { createApp } = require('../app');
 const { start } = require('../index');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bet-knesset-app-test-'));
 fs.writeFileSync(path.join(dir, 'index.html'), '<html>synthetic SPA</html>');
+fs.mkdirSync(path.join(dir, 'static/js'), { recursive: true });
+fs.writeFileSync(path.join(dir, 'static/js/test.js'), 'window.syntheticAsset = true;');
+fs.writeFileSync(path.join(dir, 'manifest.json'), '{"name":"synthetic"}');
 let sessions = [], parties = [], bets = [], outage = false;
 const projections = [];
 function query(items) {
@@ -44,6 +47,21 @@ async function status(url, expected, body, method) {
 }
 (async () => {
     server = await new Promise(resolve => { const s = createApp({ buildPath: dir }).listen(0, '127.0.0.1', () => resolve(s)); });
+    for (const prefix of ['', '/bet']) {
+        const asset = await status(`${prefix}/static/js/test.js`, 200);
+        assert.equal(asset.body, 'window.syntheticAsset = true;'); checks++;
+        assert(/javascript/.test(asset.headers['content-type'])); checks++;
+        const manifest = await status(`${prefix}/manifest.json`, 200);
+        assert.equal(JSON.parse(manifest.body).name, 'synthetic'); checks++;
+        const missingAsset = await status(`${prefix}/static/js/missing.js`, 404);
+        assert(!missingAsset.body.includes('<html>')); checks++;
+        const unknownApi = await status(`${prefix}/api/no-such-route`, 404);
+        assert.equal(JSON.parse(unknownApi.body).error, 'API endpoint not found'); checks++;
+        const browserRoute = await status(`${prefix}/some-browser-route`, 200);
+        assert(browserRoute.body.includes('synthetic SPA')); checks++;
+    }
+    const prefixedQuery = await status('/bet/api/bets/get/latest?email[$ne]=null', 400);
+    assert(prefixedQuery.headers['content-type'].includes('application/json')); checks++;
     const missing = await status('/api/no-such-route', 404);
     assert(/^[a-f0-9]{24}$/.test(missing.headers['x-request-id'])); checks++;
     await status('/api/user/signin', 400, '{"password":"sentinel-password",', 'POST');
