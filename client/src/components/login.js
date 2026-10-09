@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import {signin} from "../actions/user"
 import { useNavigate } from "react-router-dom";
+import { pendingInvitation } from '../groups/navigation';
 
-const Login = ({closeModal, setIsRegister}) => {
+const Login = ({closeModal = () => {}, setIsRegister = () => {}, embedded = false}) => {
 
     const navigate = useNavigate();
     const [fields, setFields] = useState({
@@ -13,9 +14,13 @@ const Login = ({closeModal, setIsRegister}) => {
     const {nameOrMail, password} = fields;
 
     const {user} = useSelector(state => state);
-    if(user.isAuthenticated) navigate('/')
+    useEffect(() => {
+        if (user.isAuthenticated && !embedded) {
+            const pending = pendingInvitation();
+            navigate(pending ? `/join/${pending}` : '/');
+        }
+    }, [user.isAuthenticated, embedded, navigate]);
 
-    const state = useSelector(state => state);
     const dispatch = useDispatch();
 
     const handleChange = (e) => {

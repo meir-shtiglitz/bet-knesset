@@ -14,6 +14,7 @@ function createApp({ buildPath = path.join(__dirname, 'build') } = {}) {
     app.use(cors());
     app.use('/api', require('./routes/user'));
     app.use('/api/bets', require('./routes/bets-route'));
+    app.use('/api/groups', require('./routes/groups'));
     app.use('/api', (req, res) => res.status(404).json({ error: 'API endpoint not found' }));
     app.use(express.static(buildPath));
     app.get('*', (req, res) => res.sendFile(path.join(buildPath, 'index.html')));

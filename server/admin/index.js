@@ -6,18 +6,18 @@ const partiesJson = require('./parties.json');
 
 const addSession = async () => {
     const session = await new Session({
-        slug: 'election00',
-        name: 'בחירות לכנסת בדיקה',
+        slug: 'election26',
+        name: 'בחירות לכנסת 26',
         description: '',
-        startDate: new Date('2022-08-01'),
-        endDate: new Date('2025-11-01'),
+        startDate: new Date('2026-08-01'),
+        endDate: new Date('2026-10-26'),
         isClosed: false,
     })
     session.save();
 }
 
 const addParties = async () => {
-    const sessionId = new ObjectId('6862f8f52a42d279ba8f0b93');
+    const sessionId = new ObjectId('6ac684c979defa29b119fac3');
     const partiesToInsert = partiesJson.map(p => ({ ...p, sessionId }));
     const parties = await Party.insertMany(partiesToInsert);
 }
@@ -40,5 +40,5 @@ const addResults = async () => {
 
 module.exports.addSession = addSession;
 module.exports.addParties = addParties;
-module.exports.addResults = addResults;
-module.exports.addBets = addBets;
+// module.exports.addResults = addResults;
+// module.exports.addBets = addBets;

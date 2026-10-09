@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node test/critical-security.js && node test/prediction-security.js && node test/app-security.js && node test/mail-security.js"
+    "test": "node test/critical-security.js && node test/prediction-security.js && node test/app-security.js && node test/mail-security.js && node test/groups.js"
   },
   "author": "meir shtigkitz",
   "license": "ISC",

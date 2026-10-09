@@ -2,11 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import {signup} from "../actions/user"
 import {toast} from "react-toastify";
-import {ApiUrl} from "../apiUrl";
-import Loader from "./loader";
 import { useNavigate } from "react-router-dom";
-const Register = ({closeModal, setIsRegister}) => {
+import { pendingInvitation } from '../groups/navigation';
+const Register = ({closeModal = () => {}, setIsRegister = () => {}, embedded = false}) => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useSelector(s => s.user);
+    useEffect(() => {
+        if (isAuthenticated && !embedded) {
+            const pending = pendingInvitation();
+            navigate(pending ? `/join/${pending}` : '/');
+        }
+    }, [isAuthenticated, embedded, navigate]);
     const [fields, setFields] = useState({
         name:     '',
         email:    '',

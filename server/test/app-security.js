@@ -69,9 +69,11 @@ async function status(url, expected, body, method) {
     let connected = false, created = false;
     await assert.rejects(start({ env: {}, connect: async () => { connected = true; } })); checks++;
     assert(!connected); checks++;
-    await assert.rejects(start({ env, connect: async () => { throw new Error('sentinel-database-secret'); }, create: () => { created = true; } })); checks++;
+    await assert.rejects(start({ env: { ...env, JWT_SECRET: 'too-short' } }), /JWT_SECRET must contain at least 32 bytes/); checks++;
+    assert(!connected); checks++;
+    await assert.rejects(start({ env, connect: async () => { throw new Error('sentinel-database-secret'); }, create: () => { created = true; } }), /^Error: Server startup failed during database connection$/); checks++;
     assert(!created); checks++;
-    await assert.rejects(start({ env, connect: async () => {}, initialize: async () => { throw new Error('index failure'); }, create: () => { created = true; } })); checks++;
+    await assert.rejects(start({ env, connect: async () => {}, initialize: async () => { throw new Error('index failure'); }, create: () => { created = true; } }), /Server startup failed during database index initialization/); checks++;
     assert(!created); checks++;
     const order = [];
     await start({ env, connect: async () => { order.push('connect'); }, initialize: async () => { order.push('indexes'); },

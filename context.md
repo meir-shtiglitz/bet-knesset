@@ -1,5 +1,21 @@
 # Project context
 
+## Startup configuration fix (2026-10-09)
+
+Local startup was blocked by an 8-byte JWT_SECRET. Replaced the ignored local server/.env value with a generated 96-byte secret without recording it in source or documentation; existing tokens require re-login. Entrypoint now resolves server/.env relative to its file and emits specific fixed diagnostics for configuration, connection, index initialization, application initialization and listener failure. Driver error messages remain hidden. Legacy-driver deprecation output is suppressed because Node 24 can include database credentials in URI warnings.
+
+Verified actual `npm start` reached `Server ready` against the configured database (normal connection/index initialization ran), and backend suites passed including 44 app/startup assertions. A driver warning emitted a credential-bearing URI before suppression; rotate the database password separately. No credential values are retained in these docs.
+
+## Groups feature continuation (2026-10-08)
+
+Groups implementation is on `feature/groups`; see [groups-tasks.md](groups-tasks.md) for agreed behavior, verification and remaining follow-up. New Group/GroupMembership models and authenticated `/api/groups` routes support persistent multiple memberships, creator-only management, automatic random-code invitation joining, blocking/unblocking, rotation and group deletion without deleting predictions. Startup now waits for both new model indexes alongside the prediction index.
+
+The client has `/groups` and `/join/:code` routes and a My groups navigation link. One saved selector controls group averages and winners; editor/global prediction data stay independent. Late joins count in averages but not winners; repeated invitations preserve active membership eligibility, and rejoining resets it. Groups use current members for past as well as present charts. Closed elections at join time are explicitly excluded. Public invitation previews return only group names. Invitation codes are private model fields and returned only to creators through a dedicated endpoint.
+
+Winners reuse existing finite scores and wait for actual results; the disabled scoring workflow remains a separate follow-up. Party chart participant counts are corrected and empty averages handled; winner ranking no longer sorts Redux arrays in place. Groups have an inactive tombstone before membership cleanup on deletion, and bounded reads fail rather than truncate charts.
+
+Verification: all backend suites pass (84 identity/recovery, 40 predictions, 42 app/startup, 66 groups assertions plus mail checks); all 13 frontend tests pass. Client build passes into `/tmp/bet-knesset-groups-build` with existing warnings. No deployment, live database/index mutation or manual browser run performed. Real MongoDB concurrency/index verification remains pending. Promotional popup and other extra features remain deferred.
+
 Reviewed 2026-10-07; critical authentication/recovery implementation updated 2026-10-08. Read this file together with [security-report.md](security-report.md) and [tasks.md](tasks.md) before fixes or new features. This is a snapshot of the working tree, including existing uncommitted edits, not a production assessment. Refresh these documents when behavior changes.
 
 ## Current authentication / recovery (2026-10-08)
