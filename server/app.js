@@ -3,7 +3,7 @@ const path = require('path');
 const cors = require('cors');
 const crypto = require('crypto');
 function createApp({ buildPath = path.join(__dirname, 'build'),
-    basePath = process.env.APP_BASE_PATH || '/bet' } = {}) {
+    basePath = process.env.APP_BASE_PATH || '' } = {}) {
     const app = express();
     app.disable('x-powered-by');
     // Passenger may preserve or strip the application's URL prefix.

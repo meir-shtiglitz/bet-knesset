@@ -46,7 +46,7 @@ async function status(url, expected, body, method) {
     return response;
 }
 (async () => {
-    server = await new Promise(resolve => { const s = createApp({ buildPath: dir }).listen(0, '127.0.0.1', () => resolve(s)); });
+    server = await new Promise(resolve => { const s = createApp({ buildPath: dir, basePath: '/bet' }).listen(0, '127.0.0.1', () => resolve(s)); });
     for (const prefix of ['', '/bet']) {
         const asset = await status(`${prefix}/static/js/test.js`, 200);
         assert.equal(asset.body, 'window.syntheticAsset = true;'); checks++;

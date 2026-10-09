@@ -6,7 +6,8 @@ config_file="$HOME/.config/bet-knesset-deploy.env"
 if [[ -f "$config_file" ]]; then source "$config_file"; fi
 DEPLOY_BRANCH=${DEPLOY_BRANCH:-deploy}
 APP_ROOT=${APP_ROOT:-$repo_root}
-APP_BASE_PATH=${APP_BASE_PATH:-/bet}
+# The application URL is now the domain root.
+APP_BASE_PATH=
 NODE_ACTIVATE=${NODE_ACTIVATE:-$HOME/nodevenv/bet-knesset-deploy/16/bin/activate}
 branch=$(git symbolic-ref --short HEAD)
 if [[ "$branch" != "$DEPLOY_BRANCH" ]]; then
