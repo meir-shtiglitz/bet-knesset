@@ -1,6 +1,7 @@
 import { getSlugFromUrl } from "../utils/api-utils";
 
 const initState = {
+    authRevision: 0,
     token: null,
     expiresAt: null,
     user: null,
@@ -14,17 +15,21 @@ const initState = {
     selectedSessionSlug: getSlugFromUrl()
 }
 
-const clearAuth = state => ({ ...state, token: null, expiresAt: null, isAuthenticated: false, isLoading: false, user: null });
+const clearAuth = state => ({ ...state, authRevision: (state.authRevision || 0) + 1, token: null, expiresAt: null, isAuthenticated: false, isLoading: false, user: null });
 
 export const user = (state = initState, action) => {
     const { type, payload } = action;
 
     switch(type){
+        case "RESTORE_SUCCESS":
+            if ((state.authRevision || 0) !== action.revision || state.token) return state;
+            return { ...state, ...payload, isAuthenticated: true, isLoading: false };
         case "REGISTER_SUCCESS":
         case "LOGIN_SUCCESS":
             return{
                 ...state,
                 ...payload,
+                authRevision: (state.authRevision || 0) + 1,
                 isAuthenticated:true,
                 isLoading:false
             }

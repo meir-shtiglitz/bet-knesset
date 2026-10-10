@@ -9,9 +9,9 @@ const Harness = () => { useAuthSession(); return null; };
 const mount = store => render(<Provider store={store}><Harness /></Provider>);
 const login = (store, token = 'synthetic-token', expiresAt = Date.now() + 10000) =>
     act(() => { store.dispatch({ type: 'LOGIN_SUCCESS', payload: { token, expiresAt, user: { name: 'Synthetic' } } }); });
-beforeEach(() => jest.useFakeTimers());
+beforeEach(() => { localStorage.clear(); sessionStorage.clear(); jest.useFakeTimers(); });
 afterEach(() => { cleanup(); jest.useRealTimers(); });
-test('persistent credentials are discarded and never restored; login stays in memory', () => {
+test('obsolete credentials are discarded; new login is saved until expiry', () => {
     localStorage.setItem('token', 'old-secret'); sessionStorage.setItem('token', 'old-secret');
     const store = createStore((state, action) => ({ user: user(state?.user, action) }));
     mount(store);
@@ -20,6 +20,7 @@ test('persistent credentials are discarded and never restored; login stays in me
     login(store);
     expect(store.getState().user.token).toBe('synthetic-token');
     expect(localStorage.getItem('token')).toBeNull();
+    expect(JSON.parse(localStorage.getItem('bet-knesset-session')).token).toBe('synthetic-token');
     act(() => jest.advanceTimersByTime(10000));
     expect(store.getState().user.token).toBeNull(); expect(store.getState().user.user).toBeNull();
 });
@@ -49,4 +50,70 @@ test('a late 401 for a replaced token cannot clear the new session', async () =>
     await act(async () => { await rejects[0]({ response: { status: 401 }, config: { headers: { Authorization: 'Bearer old-token' } } }).catch(() => {}); });
     expect(store.getState().user.token).toBe('new-token');
     use.mockRestore(); eject.mockRestore();
+});
+
+test('refresh restores saved login only after the server verifies it', async () => {
+    const first = createStore((state, action) => ({ user: user(state?.user, action) }));
+    const view = mount(first); login(first);
+    const saved = JSON.parse(localStorage.getItem('bet-knesset-session'));
+    view.unmount();
+    let resolveRestore;
+    const post = jest.spyOn(axios, 'post').mockImplementation(() => new Promise(resolve => { resolveRestore = resolve; }));
+    const fresh = createStore((state, action) => ({ user: user(state?.user, action) }));
+    mount(fresh);
+    expect(fresh.getState().user.isAuthenticated).toBe(false);
+    expect(post).toHaveBeenCalledWith(expect.stringContaining('/user/signbytoken'), { token: saved.token }, { timeout: 10000 });
+    await act(async () => resolveRestore({ data: { ...saved, user: { _id: 'verified-user', name: 'Verified' } } }));
+    expect(fresh.getState().user.isAuthenticated).toBe(true);
+    expect(fresh.getState().user.user.name).toBe('Verified');
+    expect(fresh.getState().user.expiresAt).toBe(saved.expiresAt);
+    post.mockRestore();
+});
+test('logout and expiry remove the saved session', () => {
+    const store = createStore((state, action) => ({ user: user(state?.user, action) }));
+    mount(store); login(store);
+    act(() => { store.dispatch({ type: 'LOGOUT' }); });
+    expect(localStorage.getItem('bet-knesset-session')).toBeNull();
+    login(store); act(() => jest.advanceTimersByTime(10000));
+    expect(localStorage.getItem('bet-knesset-session')).toBeNull();
+});
+test('expired stored credentials are never sent to the server', () => {
+    localStorage.setItem('bet-knesset-session', JSON.stringify({ token: 'expired', expiresAt: Date.now() - 1 }));
+    const post = jest.spyOn(axios, 'post');
+    const store = createStore((state, action) => ({ user: user(state?.user, action) }));
+    mount(store);
+    expect(post).not.toHaveBeenCalled();
+    expect(localStorage.getItem('bet-knesset-session')).toBeNull();
+    post.mockRestore();
+});
+test('server rejection clears stored login while temporary outages retain it', async () => {
+    const saved = JSON.stringify({ token: 'saved', expiresAt: Date.now() + 10000 });
+    const post = jest.spyOn(axios, 'post').mockRejectedValueOnce({ response: { status: 401 } }).mockRejectedValueOnce(new Error('offline'));
+    localStorage.setItem('bet-knesset-session', saved);
+    const first = createStore((state, action) => ({ user: user(state?.user, action) }));
+    const view = mount(first);
+    await act(async () => {});
+    expect(localStorage.getItem('bet-knesset-session')).toBeNull();
+    view.unmount();
+    localStorage.setItem('bet-knesset-session', saved);
+    const second = createStore((state, action) => ({ user: user(state?.user, action) }));
+    mount(second); await act(async () => {});
+    expect(second.getState().user.isAuthenticated).toBe(false);
+    expect(localStorage.getItem('bet-knesset-session')).toBe(saved);
+    post.mockRestore();
+});
+test.each(['LOGOUT', 'LOGIN_SUCCESS'])('late restoration cannot override %s', async type => {
+    const saved = { token: 'old-session', expiresAt: Date.now() + 10000 };
+    localStorage.setItem('bet-knesset-session', JSON.stringify(saved));
+    let resolveRestore;
+    const post = jest.spyOn(axios, 'post').mockImplementation(() => new Promise(resolve => { resolveRestore = resolve; }));
+    const store = createStore((state, action) => ({ user: user(state?.user, action) }));
+    mount(store);
+    if (type === 'LOGOUT') act(() => { store.dispatch({ type }); });
+    else login(store, 'new-session');
+    await act(async () => resolveRestore({ data: { ...saved, user: { name: 'Old' } } }));
+    expect(store.getState().user.token).toBe(type === 'LOGOUT' ? null : 'new-session');
+    const stored = localStorage.getItem('bet-knesset-session');
+    expect(stored ? JSON.parse(stored).token : null).toBe(type === 'LOGOUT' ? null : 'new-session');
+    post.mockRestore();
 });
