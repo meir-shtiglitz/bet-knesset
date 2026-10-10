@@ -103,7 +103,7 @@ async function status(path, data, token, expected) {
     assert(!JSON.stringify(store.get(String(a._id))).includes('old-password')); checks++;
     const token = issueToken(a);
     const valid = jwt.decode(token);
-    assert.equal(valid.exp - valid.iat, 24 * 60 * 60); checks++;
+    assert.equal(valid.exp - valid.iat, 60 * 24 * 60 * 60); checks++;
     const invalidTokens = [
         'not-a-jwt', jwt.sign(valid, 'attacker-secret'), jwt.sign(valid, '', { algorithm: 'none' }),
         jwt.sign({ ...valid, exp: 1 }, process.env.JWT_SECRET),

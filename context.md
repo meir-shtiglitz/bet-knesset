@@ -1,10 +1,11 @@
 ## Persistent login update (2026-10-10)
 
-User requested login to survive reload and last one day. This supersedes earlier
-memory-only/one-hour session notes below. New access tokens expire after 24 hours;
+User requested login to survive reload and last 60 days. This supersedes earlier
+memory-only/one-hour session notes below. New access tokens expire after 60 days;
 restoration verifies the saved token with the server without renewing it. The
 browser stores only token and expiry under bet-knesset-session, not user details.
-Logout, expiry and current-token 401 clear it. Auth revision checks prevent late
+Logout, expiry and current-token 401 clear it. Long expiry timers are capped and
+rescheduled to avoid the browser timer limit. Auth revision checks prevent late
 restoration from overriding logout or a newer login. Temporary verification
 outages retain the saved token for a future retry but do not authenticate locally.
 

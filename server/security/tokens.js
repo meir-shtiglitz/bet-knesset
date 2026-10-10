@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const options = { algorithms: ['HS256'], issuer: 'bet-knesset', audience: 'bet-knesset-client' };
 exports.issueToken = user => jwt.sign({ _id: String(user._id), version: user.tokenVersion || 0 }, process.env.JWT_SECRET, {
-    algorithm: 'HS256', expiresIn: '1d', issuer: options.issuer, audience: options.audience, subject: String(user._id)
+    algorithm: 'HS256', expiresIn: '60d', issuer: options.issuer, audience: options.audience, subject: String(user._id)
 });
 exports.verifyToken = token => {
     if (typeof token !== 'string' || token.length > 4096) throw new Error('Invalid token');

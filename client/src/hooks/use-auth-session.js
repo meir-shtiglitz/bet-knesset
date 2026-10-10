@@ -47,7 +47,14 @@ export default function useAuthSession() {
         if (!token) return;
         const expire = () => dispatch({ type: 'SESSION_EXPIRED', token });
         if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) { expire(); return; }
-        const timer = setTimeout(expire, expiresAt - Date.now());
+        // Browser timers cannot represent delays beyond about 24.8 days.
+        let timer;
+        const schedule = () => {
+            const remaining = expiresAt - Date.now();
+            if (remaining <= 0) expire();
+            else timer = setTimeout(schedule, Math.min(remaining, 2147483647));
+        };
+        schedule();
         const check = () => { if (Date.now() >= expiresAt) expire(); };
         window.addEventListener('focus', check);
         document.addEventListener('visibilitychange', check);

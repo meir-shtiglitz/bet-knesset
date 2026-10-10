@@ -9,7 +9,7 @@ const Harness = () => { useAuthSession(); return null; };
 const mount = store => render(<Provider store={store}><Harness /></Provider>);
 const login = (store, token = 'synthetic-token', expiresAt = Date.now() + 10000) =>
     act(() => { store.dispatch({ type: 'LOGIN_SUCCESS', payload: { token, expiresAt, user: { name: 'Synthetic' } } }); });
-beforeEach(() => { localStorage.clear(); sessionStorage.clear(); jest.useFakeTimers(); });
+beforeEach(() => { localStorage.clear(); sessionStorage.clear(); jest.useFakeTimers('modern'); });
 afterEach(() => { cleanup(); jest.useRealTimers(); });
 test('obsolete credentials are discarded; new login is saved until expiry', () => {
     localStorage.setItem('token', 'old-secret'); sessionStorage.setItem('token', 'old-secret');
@@ -116,4 +116,16 @@ test.each(['LOGOUT', 'LOGIN_SUCCESS'])('late restoration cannot override %s', as
     const stored = localStorage.getItem('bet-knesset-session');
     expect(stored ? JSON.parse(stored).token : null).toBe(type === 'LOGOUT' ? null : 'new-session');
     post.mockRestore();
+});
+
+test('a 60-day session survives timer limits and expires at the exact deadline', () => {
+    const day = 24 * 60 * 60 * 1000;
+    const store = createStore((state, action) => ({ user: user(state?.user, action) }));
+    mount(store); login(store, 'long-session', Date.now() + 60 * day);
+    act(() => jest.advanceTimersByTime(60 * day - 1));
+    expect(store.getState().user.token).toBe('long-session');
+    expect(JSON.parse(localStorage.getItem('bet-knesset-session')).token).toBe('long-session');
+    act(() => jest.advanceTimersByTime(1));
+    expect(store.getState().user.isAuthenticated).toBe(false);
+    expect(localStorage.getItem('bet-knesset-session')).toBeNull();
 });
