@@ -2,8 +2,9 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import '../css/winner.scss';
 import PartyWinnerGraph from './winner-graph';
+import WinnerExplanation from './winner-explanation';
 
-function Winner({ scopedBets, ready }) {
+function WinnerRanking({ scopedBets, ready }) {
     const { bets, user, result, parties } = useSelector(state => state.user);
     const source = scopedBets === undefined ? bets : scopedBets;
     if (!result?.results?.length) return <div className="text-center"><h3>המנצחים הגדולים יוכרזו לאחר תוצאות האמת</h3></div>;
@@ -17,7 +18,7 @@ function Winner({ scopedBets, ready }) {
     const results = Object.fromEntries(result.results.map(p => [p.partyId, p.actualSeats]));
     const merged = parties.map(p => ({ ...p, final: results[p._id] || 0,
         winner: winner.betsMap?.[p._id] || 0, userBet: own?.[p._id] || 0 }));
-    return <div className="winner-section">
+    return <div>
         <h1 className="text-end"><span className="team-blue">מקום ראשון: </span>{winner.userId?.name}</h1>
         <div className="winner-legends">
             <div className="winner-legend">תוצאות אמת <span className="legend-rect bg-team-blue" /></div>
@@ -31,6 +32,12 @@ function Winner({ scopedBets, ready }) {
                     .map(p => <PartyWinnerGraph key={p._id} party={p} isUserBet={!!own} />)}
             </tbody></table>
         </div>
+    </div>;
+}
+function Winner(props) {
+    return <div className="winner-section">
+        <WinnerExplanation />
+        <WinnerRanking {...props} />
     </div>;
 }
 export default Winner;
