@@ -1,25 +1,17 @@
 {
-  "short_name": "Bet Knesset",
-  "name": "",
+  "short_name": "BET כנסת",
+  "name": "BET כנסת — משחק תחזיות הבחירות",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "logo192.png",
+      "src": "bet-knesset-logo.png",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "587x587"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#1c55a0",
+  "background_color": "#ffffff",
+  "description": "כמה מנדטים תקבל כל מפלגה? משתפים תחזיות, מתחרים עם חברים בקבוצות ומגלים מי חזה הכי קרוב לתוצאות האמת.",
+  "lang": "he"
 }
