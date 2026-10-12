@@ -13,7 +13,7 @@ import { mapBetsByParty } from '../utils/data-utils'
 function Home() {
 
   const {selectedSessionSlug, session, token, bets} = useSelector(state => state.user)
-  const {groups, selected, select, api, error: groupsError, refresh} = useGroups()
+  const {chartGroups: groups, selected, select, api, error: groupsError, refresh} = useGroups()
   const [chartState, setChartState] = useState(null)
   const [chartError, setChartError] = useState('')
   const [retry, setRetry] = useState(0)

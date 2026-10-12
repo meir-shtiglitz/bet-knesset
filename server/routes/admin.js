@@ -65,7 +65,21 @@ router.get('/:type',safe(async(req,res)=>{
     const query=validate(listSchema,req.query);
     const filter={archived:query.archived==='true'?true:{$ne:true}};
     if(query.sessionId && ['parties','bets'].includes(type)) filter.sessionId=query.sessionId;
-    if(query.userId && ['bets','memberships'].includes(type)) filter.userId=query.userId;
+    if(query.sessionId && type==='sessions') filter._id=query.sessionId;
+    if(query.sessionId && ['users','groups','memberships'].includes(type)) {
+        const participants=await Bet.find({sessionId:query.sessionId}).select('userId');
+        const userIds=[...new Set(participants.map(b=>String(b.userId)))];
+        if(type==='users') filter._id={$in:userIds};
+        if(type==='memberships') filter.userId={$in:userIds};
+        if(type==='groups') {
+            const memberships=await Membership.find({userId:{$in:userIds},status:'active'}).select('groupId');
+            filter._id={$in:memberships.map(m=>m.groupId)};
+        }
+    }
+    if(query.userId && ['bets','memberships'].includes(type)) {
+        if(type==='memberships'&&query.sessionId) filter.$and=[{userId:query.userId}];
+        else filter.userId=query.userId;
+    }
     if(query.groupId && type==='memberships') filter.groupId=query.groupId;
     if(query.q && ['sessions','parties','users','groups'].includes(type)) {
         const regex=new RegExp(query.q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
@@ -74,7 +88,7 @@ router.get('/:type',safe(async(req,res)=>{
     const page=Number(query.page),pageSize=25;
     const total=await Model.countDocuments(filter).withArchived();
     let cursor=Model.find(filter).withArchived().select(projections[type]).sort({_id:1}).skip((page-1)*pageSize).limit(pageSize);
-    if(type==='bets') cursor=cursor.populate({path:'userId',select:'name email',options:{includeArchived:true}}).populate({path:'sessionId',select:'name',options:{includeArchived:true}});
+    if(type==='bets') cursor=cursor.populate({path:'userId',select:'name email',options:{includeArchived:true}}).populate({path:'sessionId',select:'name',options:{includeArchived:true}}).populate({path:'bets.partyId',select:'name',options:{includeArchived:true}});
     if(type==='memberships') cursor=cursor.populate({path:'userId',select:'name email',options:{includeArchived:true}});
     if(type==='groups') cursor=cursor.populate({path:'creatorId',select:'name email',options:{includeArchived:true}});
     res.json({items:await cursor,total,page,pageSize});

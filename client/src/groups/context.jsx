@@ -9,6 +9,7 @@ export const saveSetting = (key, value) => { try { localStorage.setItem(key, val
 export function GroupsProvider({ children }) {
     const { token, user } = useSelector(s => s.user);
     const [groups, setGroups] = useState([]);
+    const [chartGroups, setChartGroups] = useState([]);
     const [selected, setSelected] = useState('all');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -27,20 +28,22 @@ export function GroupsProvider({ children }) {
         if (!token) return;
         const requestId = ++latestRefresh.current;
         const response = await api();
+        const chartResponse = user?.role === 5 ? await api('/for-charts') : response;
         if (identity.current !== token || requestId !== latestRefresh.current) return;
         setError('');
         setGroups(response.groups);
-        setSelected(current => current === 'all' || response.groups.some(g => g._id === current) ? current : 'all');
+        setChartGroups(chartResponse.groups);
+        setSelected(current => current === 'all' || chartResponse.groups.some(g => g._id === current) ? current : 'all');
         return response.groups;
-    }, [api, token]);
+    }, [api, token, user?.role]);
     useEffect(() => {
         latestRefresh.current++;
-        setGroups([]); setError('');
+        setGroups([]); setChartGroups([]); setError('');
         setSelected(user?._id ? readSetting(`group-selection:${user._id}`, 'all') : 'all');
         if (!token) { setLoading(false); return; }
         setLoading(true);
         refresh().catch(() => { if (identity.current === token) setError('לא ניתן לטעון קבוצות. נסו שוב.'); })
             .finally(() => { if (identity.current === token) setLoading(false); });
     }, [refresh, token, user?._id]);
-    return <Context.Provider value={{ groups, selected, select, api, refresh, error, loading }}>{children}</Context.Provider>;
+    return <Context.Provider value={{ groups, chartGroups, selected, select, api, refresh, error, loading }}>{children}</Context.Provider>;
 }

@@ -38,10 +38,11 @@ function UserPicker({api,value,onChange,disabled,name}) {
 }
 
 export default function Admin() {
+    const {section='sessions'}=useParams();
     const {user,token,isAuthenticated}=useSelector(state=>state.user);
     if(!isAuthenticated || !token) return <Navigate to="/auth?mode=login" replace />;
     if(user?.role!==5) return <main className="container" dir="rtl"><p role="alert">אזור זה מיועד לסופר־אדמין בלבד.</p><Link to="/">חזרה לאתר</Link></main>;
-    return <AdminWorkspace key={token} token={token} />;
+    return <AdminWorkspace key={`${token}:${section}`} token={token} />;
 }
 
 function AdminWorkspace({token}) {
@@ -75,7 +76,7 @@ function AdminWorkspace({token}) {
                 if(active){setParties(response.parties);setResultForm(Object.fromEntries(response.parties.map(p=>[p._id,response.result?.results.find(r=>r.partyId===p._id)?.actualSeats ?? 0])));setPublishedAt(localDate(response.result?.publishedAt||new Date()));}
             } else {
                 const query={page,q:search,archived:String(archived)};
-                if(sessionId&&['parties','bets'].includes(section))query.sessionId=sessionId;
+                if(sessionId)query.sessionId=sessionId;
                 if(userId&&section==='bets')query.userId=userId;
                 if(groupId&&section==='memberships')query.groupId=groupId;
                 const response=await api(`/${section}?${new URLSearchParams(query)}`);
@@ -100,7 +101,7 @@ function AdminWorkspace({token}) {
             }
             if(section==='bets') {
                 const rows=await all('parties',{sessionId:identifier(item.sessionId)});setParties(rows);
-                value={bets:Object.fromEntries(rows.map(p=>[p._id,item.bets.find(b=>b.partyId===p._id)?.predictedSeats ?? 0]))};
+                value={bets:Object.fromEntries(rows.map(p=>[p._id,item.bets.find(b=>identifier(b.partyId)===p._id)?.predictedSeats ?? 0]))};
             }
             setForm(value);setEditing(item||{_id:null});
         } catch(e) {setError(e.response?.data?.error||'לא ניתן לפתוח עריכה');}
@@ -111,7 +112,7 @@ function AdminWorkspace({token}) {
         await run(async()=>{
             const data={...form};
             if(section==='sessions'){data.startDate=new Date(data.startDate).toISOString();data.endDate=new Date(data.endDate).toISOString();}
-            if(section==='parties')data.sessionId=sessionId;
+            if(section==='parties')data.sessionId=identifier(editing.sessionId)||sessionId;
             if(section==='memberships')data.groupId=groupId;
             await api(`/${section}${editing._id?`/${editing._id}`:''}`,editing._id?'patch':'post',data);setEditing(null);
         });
@@ -120,20 +121,23 @@ function AdminWorkspace({token}) {
         const question=item.archived?'לשחזר את הרשומה?':'לארכב את הרשומה? היא תוסתר מהאתר וניתן יהיה לשחזר אותה. נתונים קשורים יישמרו; ארכוב בחירות מסתיר גם את ההימורים והתוצאות שלהן מהאתר.';
         if(window.confirm(question))await run(()=>api(`/${section}/${item._id}/archive`,'post',{archived:!item.archived}));
     }
-    const setSession=value=>{setPage(1);setEditing(null);setSearchParams(value?{sessionId:value,...(userId?{userId}:{})}:userId?{userId}:{});};
+    const adminLink=(type,extra={})=>`/admin/${type}?${new URLSearchParams({...(sessionId?{sessionId}:{}),...extra})}`;
+    const setSession=value=>{setPage(1);setEditing(null);setSearchParams({...Object.fromEntries(searchParams),sessionId:value});};
     const rowName=item=>item.name||item.userId?.name||item.userId?.email||item._id;
     return <main className="container text-end pb-5" dir="rtl">
         <h1>ניהול האתר</h1><Link to="/">חזרה לאתר</Link>
         <nav aria-label="ניהול האתר" className="d-flex flex-wrap gap-2 my-3">
-            {['sessions','parties','users','bets','groups','results'].map(type=><Link key={type} className={`btn ${section===type?'btn-primary':'btn-outline-primary'}`} to={`/admin/${type}`}>{titles[type]}</Link>)}
+            {['sessions','parties','users','bets','groups','results'].map(type=><Link key={type} className={`btn ${section===type?'btn-primary':'btn-outline-primary'}`} to={adminLink(type)}>{titles[type]}</Link>)}
         </nav>
         <h2>{titles[section]||'מסך לא נמצא'}</h2>
         {error&&<p role="alert" className="text-danger">{error}</p>}{notice&&<p role="status" className="text-success">{notice}</p>}
-        {['parties','bets','results'].includes(section)&&<label className="d-block my-3">מערכת בחירות
-            <select className="form-select" value={sessionId} onChange={e=>setSession(e.target.value)}><option value="">{section==='bets'?'כל מערכות הבחירות':'בחר מערכת בחירות'}</option>{sessions.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}</select>
-        </label>}
-        {userId&&<p>הימורים של משתמש: <span dir="ltr">{userId}</span> <Link to="/admin/bets">כל ההימורים</Link></p>}
-        {section==='memberships'&&<p>קבוצה: <span dir="ltr">{groupId}</span> <Link to="/admin/groups">חזרה לקבוצות</Link></p>}
+        <label className="d-block my-3">מערכת בחירות
+            <select className="form-select" value={sessionId} onChange={e=>setSession(e.target.value)}><option value="">כל מערכות הבחירות</option>{sessions.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}</select>
+        </label>
+        {section==='bets'&&<label className="d-block my-3">משתמש לצפייה בהימורים<UserPicker api={api} value={userId} onChange={value=>{const query=Object.fromEntries(searchParams);if(value)query.userId=value;else delete query.userId;setSearchParams(query);}}/></label>}
+        {sessionId&&['users','groups','memberships'].includes(section)&&<p>מוצגים משתמשים שהגישו הימור בבחירות שנבחרו וקבוצות עם חברים משתתפים.</p>}
+        {userId&&<p>הימורים של משתמש: <span dir="ltr">{userId}</span> <Link to={adminLink('bets')}>כל ההימורים</Link></p>}
+        {section==='memberships'&&<p>קבוצה: <span dir="ltr">{groupId}</span> <Link to={adminLink('groups')}>חזרה לקבוצות</Link></p>}
         {loading&&<p>טוענים נתונים…</p>}
         {section==='results'&&sessionId&&!loading&&<section>
             <form onSubmit={e=>{e.preventDefault();run(()=>api(`/sessions/${sessionId}/results`,'put',{publishedAt:new Date(publishedAt).toISOString(),results:parties.map(p=>({partyId:p._id,actualSeats:Number(resultForm[p._id])}))}),'תוצאות נשמרו. יש לחשב מיקומים מחדש.');}}>
@@ -180,14 +184,14 @@ function AdminWorkspace({token}) {
                     {section==='users'&&<>{item.email}<br/>תפקיד: {item.role}{item.disabled?' · חסום':''}</>}
                     {section==='sessions'&&<>{item.slug}<br/>{item.isClosed?'סגור':'פתוח'} · {new Date(item.endDate).toLocaleString('he-IL')}</>}
                     {section==='parties'&&<>טווח: {item.minPredictedSeats??0}–{item.maxPredictedSeats??120}</>}
-                    {section==='bets'&&<>{item.sessionId?.name}<br/>ניקוד: {item.score??'טרם חושב'}<br/>הוגש: {new Date(item.createdAt).toLocaleString('he-IL')}</>}
+                    {section==='bets'&&<>{item.sessionId?.name}<br/>ניקוד: {item.score??'טרם חושב'}<br/>הוגש: {new Date(item.createdAt).toLocaleString('he-IL')}<details><summary>צפייה בהימור</summary><ul>{item.bets.map(b=><li key={identifier(b.partyId)}>{b.partyId?.name||identifier(b.partyId)}: {b.predictedSeats} מנדטים</li>)}</ul></details></>}
                     {section==='groups'&&<>יוצר: {item.creatorId?.name||identifier(item.creatorId)}</>}
                     {section==='memberships'&&<>{item.userId?.email}<br/>{({active:'פעיל',left:'עזב',blocked:'חסום'})[item.status]}</>}
                 </td><td><div className="d-flex flex-wrap gap-2">
-                    {!item.archived&&<button disabled={busy} className="btn btn-outline-primary btn-sm" onClick={()=>{if(section==='parties'&&identifier(item.sessionId)!==sessionId)setSearchParams({sessionId:identifier(item.sessionId)});edit(item);}}>עריכה</button>}
+                    {!item.archived&&<button disabled={busy} className="btn btn-outline-primary btn-sm" onClick={()=>edit(item)}>עריכה</button>}
                     <button disabled={busy} className="btn btn-outline-danger btn-sm" onClick={()=>archive(item)}>{item.archived?'שחזור':'מחיקה / ארכוב'}</button>
-                    {section==='users'&&<Link className="btn btn-outline-secondary btn-sm" to={`/admin/bets?userId=${item._id}`}>הימורים</Link>}
-                    {section==='groups'&&<Link className="btn btn-outline-secondary btn-sm" to={`/admin/memberships?groupId=${item._id}`}>חברי הקבוצה</Link>}
+                    {section==='users'&&<Link className="btn btn-outline-secondary btn-sm" to={adminLink('bets',{userId:item._id})}>הימורים</Link>}
+                    {section==='groups'&&<Link className="btn btn-outline-secondary btn-sm" to={adminLink('memberships',{groupId:item._id})}>חברי הקבוצה</Link>}
                     {section==='sessions'&&<Link className="btn btn-outline-secondary btn-sm" to={`/admin/results?sessionId=${item._id}`}>תוצאות ודירוג</Link>}
                 </div></td></tr>)}
             </tbody></table></div>

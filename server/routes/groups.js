@@ -32,6 +32,12 @@ router.get('/invite/:code', safe(async (req, res) => {
     res.json({ name: group.name });
 }));
 router.use(isLoged);
+router.get('/for-charts', safe(async (req, res) => {
+    if (req.user.role !== 5) return res.status(403).json({ error: 'For superAdmins only' });
+    const groups = await Group.find({ deleted: false }).select('name description creatorId').sort({ name: 1 }).limit(1001);
+    if (groups.length > 1000) return res.status(503).json({ error: 'Too many groups to display' });
+    res.json({ groups });
+}));
 async function membershipData() {
     const closed = await Session.find({ isClosed: true }).select('_id').limit(101);
     if (closed.length > 100) throw new Error('Election capacity exceeded');
@@ -76,7 +82,8 @@ router.use('/:groupId', safe(async (req, res, next) => {
     req.group = await Group.findOne({ _id: req.params.groupId, deleted: false });
     if (!req.group) return res.status(404).json({ error: 'Group not found' });
     req.membership = await Membership.findOne({ groupId: req.group._id, userId: req.tokenId, status: 'active' });
-    if (!req.membership) return res.status(403).json({ error: 'Group membership required' });
+    const superAdminCharts = req.user.role === 5 && req.method === 'GET' && /\/charts\/[a-f0-9]{24}$/.test(req.originalUrl.split('?')[0]);
+    if (!req.membership && !superAdminCharts) return res.status(403).json({ error: 'Group membership required' });
     next();
 }));
 const admin = (req, res, next) => String(req.group.creatorId) === String(req.tokenId) ? next() : res.status(403).json({ error: 'Only the creator can manage this group' });
@@ -128,6 +135,6 @@ router.get('/:groupId/charts/:sessionId', safe(async (req, res) => {
     const parties = await Party.find({ sessionId: session._id }).select('_id').limit(121);
     if (parties.length > 120) return res.status(503).json({ error: 'Election exceeds chart capacity' });
     const result = await Result.findOne({ sessionId: session._id });
-    res.json({ ...charts(bets, members, session, parties, result), viewerEligible: eligible(req.membership, session) });
+    res.json({ ...charts(bets, members, session, parties, result), viewerEligible: req.membership ? eligible(req.membership, session) : null });
 }));
 module.exports = router;

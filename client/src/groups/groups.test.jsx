@@ -123,3 +123,16 @@ test('newer membership refresh wins over an older delayed response', async () =>
     await act(async () => resolves[0]({ data: { groups: [] } }));
     expect(screen.getByText('Groups: Friends')).toBeInTheDocument();
 });
+test('superAdmin can select a nonmember group for charts while own memberships stay separate',async()=>{
+    const outsider={_id:'other-group',name:'All-site group'};
+    axios.mockImplementation(({url})=>Promise.resolve({data:url.endsWith('/for-charts')?{groups:[outsider]}:url.includes('/charts/')?{
+        participantCount:1,averages:[{partyId:'p1',avg:55}],winnersReady:false,winners:[],viewerEligible:null
+    }:{groups:[]}}));
+    mount(<><Home/><GroupState/></>,storeFor({user:{...base.user,role:5}}));
+    await screen.findByRole('option',{name:'All-site group'});
+    expect(screen.getByText('Groups:')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('הצגת גרפים עבור:'),{target:{value:outsider._id}});
+    await screen.findByText('Party: 55');
+    expect(screen.queryByText(/הצטרפת לאחר סגירת ההימורים/)).not.toBeInTheDocument();
+    expect(axios.mock.calls.some(([c])=>c.url.includes('/other-group/charts/s1'))).toBe(true);
+});

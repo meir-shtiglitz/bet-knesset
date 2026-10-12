@@ -24,7 +24,7 @@ test('participants and ordinary admins cannot load administration data',()=>{
     mount('/admin/users',1);expect(axios).not.toHaveBeenCalled();
 });
 test('superAdmin sees navigation, edits a session, and sends authenticated fields',async()=>{
-    mount();await screen.findByText('Test election');
+    mount();await screen.findByRole('button',{name:'עריכה'});
     expect(screen.getByRole('link',{name:'תוצאות אמת ודירוג'})).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button',{name:'עריכה'}));
     await screen.findByRole('heading',{name:'עריכת רשומה'});
@@ -33,7 +33,7 @@ test('superAdmin sees navigation, edits a session, and sends authenticated field
     await waitFor(()=>expect(axios).toHaveBeenCalledWith(expect.objectContaining({method:'patch',url:expect.stringContaining('/admin/sessions/s1'),headers:{Authorization:'Bearer synthetic-token'},data:expect.objectContaining({name:'Updated election',isClosed:true})})));
 });
 test('archive requires confirmation and archived rows expose restoration',async()=>{
-    window.confirm.mockReturnValue(false);mount();await screen.findByText('Test election');
+    window.confirm.mockReturnValue(false);mount();await screen.findByRole('button',{name:'עריכה'});
     fireEvent.click(screen.getByRole('button',{name:'מחיקה / ארכוב'}));
     expect(axios.mock.calls.some(([c])=>c.method==='post')).toBe(false);
     window.confirm.mockReturnValue(true);fireEvent.click(screen.getByRole('button',{name:'מחיקה / ארכוב'}));
@@ -85,4 +85,18 @@ test('ranking preview displays results without sending a calculation request',as
     await screen.findByText('Preview winner');
     expect(axios.mock.calls.some(([c])=>c.url.endsWith('/calculate'))).toBe(false);
     expect(screen.getByText('תצוגה מקדימה בלבד — הניקוד לא נשמר')).toBeInTheDocument();
+});
+test('global election selection follows navigation and a user prediction link',async()=>{
+    const user={_id:'u1',name:'Election participant',email:'u1@example.com',role:0};
+    axios.mockImplementation(async({url})=>({data:url.includes('/users?')?page([user]):url.includes('/bets?')?page([{_id:'b1',userId:user,sessionId:session,bets:[{partyId:{_id:'p1',name:'First'},predictedSeats:60}],createdAt:session.startDate}]):page([session])}));
+    mount();await screen.findByRole('option',{name:'Test election'});
+    fireEvent.change(screen.getByLabelText('מערכת בחירות'),{target:{value:'s1'}});
+    fireEvent.click(screen.getByRole('link',{name:'משתמשים'}));
+    await screen.findByText('Election participant');
+    await waitFor(()=>expect(axios.mock.calls.some(([c])=>c.url.includes('/users?')&&c.url.includes('sessionId=s1'))).toBe(true));
+    const link=screen.getAllByRole('link',{name:'הימורים'}).find(element=>element.getAttribute('href').includes('userId=u1'));
+    expect(link).toHaveAttribute('href','/admin/bets?sessionId=s1&userId=u1');fireEvent.click(link);
+    await screen.findByText('First: 60 מנדטים');
+    expect(screen.getByLabelText('מערכת בחירות')).toHaveValue('s1');
+    await waitFor(()=>expect(axios.mock.calls.some(([c])=>c.url.includes('/bets?')&&c.url.includes('sessionId=s1')&&c.url.includes('userId=u1'))).toBe(true));
 });
