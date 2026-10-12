@@ -7,7 +7,7 @@ const Session = require('../model/sessions');
 const Party = require('../model/parties');
 const Result = require('../model/results');
 
-const { validatePrediction, isOpen } = require('../security/predictions');
+const { validatePrediction, isOpen, isWithinPartyRanges } = require('../security/predictions');
 const { rateLimit } = require('../security/rate-limit');
 router.post('/add', rateLimit({ limit: 30 }), isLoged, async (req, res) => {
     const data = validatePrediction(req.body);
@@ -16,9 +16,13 @@ router.post('/add', rateLimit({ limit: 30 }), isLoged, async (req, res) => {
         const session = await Session.findById(data.sessionId);
         if (!session) return res.status(404).json({ error: 'Election not found' });
         if (!isOpen(session)) return res.status(403).json({ error: 'Election is closed for predictions' });
-        const parties = await Party.find({ sessionId: data.sessionId }).select('_id');
+        const parties = await Party.find({ sessionId: data.sessionId }).select('_id minPredictedSeats maxPredictedSeats');
         const allowed = new Set(parties.map(party => String(party._id)));
         if (Object.keys(data.bets).some(id => !allowed.has(id))) return res.status(400).json({ error: 'Party does not belong to this election' });
+        if (!isWithinPartyRanges(data.bets, parties)) return res.status(400).json({
+            code: 'PREDICTION_OUT_OF_RANGE',
+            error: 'מצטערים ההימור שלך זוהה כפייק נסה שוב מאוחר יותר'
+        });
         // Fail closed until the compound unique index has been built successfully.
         await Bet.init();
         // Re-read after potentially slow index/party work; cutoff is checked at

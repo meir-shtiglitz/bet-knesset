@@ -78,11 +78,13 @@ function Voted() {
             return Swal.fire({
                 icon: 'error',
                 title: 'אופסססס',
-                text: 'משהו השתבש וההימור שלך לא נקלט, נסה שוב מאוחר יותר',
+                text: err.response?.data?.code === 'PREDICTION_OUT_OF_RANGE'
+                    ? 'מצטערים ההימור שלך זוהה כפייק נסה שוב מאוחר יותר'
+                    : 'משהו השתבש וההימור שלך לא נקלט, נסה שוב מאוחר יותר',
                 confirmButtonText: 'אישור'
             })
         })
-        if(!res.data) return
+        if(!res?.data) return
         setIsEditMode(false)
         setIsNotFirstBet(true)
         dispatch( updateBets(res.data) )

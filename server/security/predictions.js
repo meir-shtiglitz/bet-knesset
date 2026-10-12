@@ -15,4 +15,16 @@ function isOpen(session, now = Date.now()) {
     const end = new Date(session.endDate).getTime();
     return Number.isFinite(start) && Number.isFinite(end) && start < end && start <= now && now < end;
 }
-module.exports = { validatePrediction, isOpen };
+function isWithinPartyRanges(bets, parties) {
+    return parties.every(party => {
+        // Existing documents without these fields retain the old 0–120 range.
+        const min = party.minPredictedSeats === undefined ? 0 : party.minPredictedSeats;
+        const max = party.maxPredictedSeats === undefined ? 120 : party.maxPredictedSeats;
+        if (!Number.isInteger(min) || !Number.isInteger(max) || min < 0 || max > 120 || min > max) {
+            throw new Error('Invalid party prediction range');
+        }
+        const seats = bets[String(party._id)] ?? 0;
+        return seats >= min && seats <= max;
+    });
+}
+module.exports = { validatePrediction, isOpen, isWithinPartyRanges };
