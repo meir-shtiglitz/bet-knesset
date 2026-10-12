@@ -17,7 +17,7 @@ function PartiesChart({ chartData }) {
     return <div>
         <p className="text-end">שיקלול ממוצע מנדטים מ <span className="bets-num">{displayCount}</span> המהמרים עד כה</p>
         {!count ? <p className="text-center">עדיין אין הימורים בבחירות אלו</p> :
-            <table className={`graph ${!parties.length ? 'avg-table' : ''}`}><tbody>
+            <table className="graph avg-table"><tbody>
                 {averaged.sort((a, b) => b.avg - a.avg).map(p => <PartyGraph key={p._id} party={p} />)}
             </tbody></table>}
     </div>;

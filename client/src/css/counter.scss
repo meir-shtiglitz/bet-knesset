@@ -26,9 +26,16 @@
     .counter-wrap.row {
         --bs-gutter-x:0;
         .counter-item {
-            padding-top: 15%;
+            padding: 12px 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 12px;
             font-size: 1em;
             height: 120px;
+            p {
+                margin: 0;
+            }
         }
     }
 }

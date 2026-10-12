@@ -12,7 +12,7 @@ body, table, input, select, textarea {
 }
 
 table.avg-table{
-	min-width: 96vw;
+	width: 90%;
 }
 
 .graph caption {
@@ -206,3 +206,62 @@ table.avg-table{
 	} /* min-width:32em */
 
 } /* grid only */
+
+@media (max-width: 599px) {
+	table.graph.avg-table {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	table.graph.avg-table tbody {
+		display: block;
+		width: 100%;
+		height: auto;
+		margin: 0;
+		padding: 0;
+		border: none;
+		background: none;
+	}
+
+	table.graph.avg-table tbody::before,
+	table.graph.avg-table tbody::after {
+		content: none;
+	}
+
+	table.graph.avg-table .party-graph-section {
+		width: 100%;
+		padding: 6px 10px;
+		border: solid 1px #1655a7;
+	}
+
+	table.graph.avg-table th,
+	table.graph.avg-table td {
+		display: block;
+		position: relative;
+		width: auto;
+		height: auto;
+		margin: 0;
+		padding: 0;
+		text-align: start;
+		transform: none;
+		top: auto;
+		left: auto;
+		background: transparent;
+		z-index: 1;
+	}
+
+	table.graph.avg-table td span {
+		position: static;
+		width: auto;
+		margin: 0;
+		padding: 0;
+		color: inherit;
+		font: inherit;
+	}
+
+	table.graph.avg-table .bar-chart {
+		z-index: 0;
+		opacity: 0.2;
+	}
+}
