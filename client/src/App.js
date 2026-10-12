@@ -21,6 +21,7 @@ const Register = lazy(() => import('./components/register'));
 const ForgotPassword = lazy(() => import('./components/forgotPassword'));
 const CategoryList = lazy(() => import('./components/categoryList'));
 const Lorum = lazy(() => import('./components/lorum/creator'));
+const Admin = lazy(() => import('./admin/Admin'));
 // const Loader = lazy(() => import('./components/loader'));
 
 const App = () => {
@@ -39,10 +40,13 @@ const App = () => {
       {isAuthenticated && <div className="text-center mb-3 mt-3">
         <span>{user?.name} </span>
         <Link to="/groups" className="btn btn-outline-primary btn-sm mx-2">הקבוצות שלי</Link>
+        {user?.role === 5 && <Link to="/admin/sessions" className="btn btn-outline-primary btn-sm mx-2">ניהול האתר</Link>}
         <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => dispatch(signout())}>יציאה מכל ההתחברויות</button>
       </div>}
       <ElectionMenu />
       <Routes>
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/:section" element={<Admin />} />
         <Route path="/groups" element={<GroupManagement />} />
         <Route path="/join/:code" element={<Invitation />} />
         <Route exact path="/" element={<Home />} />

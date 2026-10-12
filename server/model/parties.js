@@ -21,4 +21,5 @@ const partiesSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+partiesSchema.plugin(require('./archive'));
 module.exports = mongoose.model("Parties", partiesSchema);

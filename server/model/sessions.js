@@ -9,5 +9,6 @@ const sessionsSchema = new mongoose.Schema({
     isClosed: Boolean,
 }, { timestamps: true });
 
+sessionsSchema.plugin(require('./archive'));
 module.exports = mongoose.model("Sessions", sessionsSchema);
 

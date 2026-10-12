@@ -8,4 +8,5 @@ const schema = new mongoose.Schema({
 }, { timestamps: true });
 schema.index({ groupId: 1, userId: 1 }, { unique: true });
 schema.index({ userId: 1, status: 1 });
+schema.plugin(require('./archive'));
 module.exports = mongoose.model('GroupMembership', schema);

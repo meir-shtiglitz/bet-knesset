@@ -37,4 +37,5 @@ betsSchema.path('bets').validate(function(bets) {
 }, 'Invalid prediction allocation');
 betsSchema.index({ userId: 1, sessionId: 1 }, { unique: true });
 
+betsSchema.plugin(require('./archive'));
 module.exports = mongoose.model("Bets", betsSchema);

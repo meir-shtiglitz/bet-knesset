@@ -19,4 +19,5 @@ const resultsSchema = new mongoose.Schema({
     publishedAt: Date
 }, { timestamps: true });
 
+resultsSchema.plugin(require('./archive'));
 module.exports = mongoose.model("Results", resultsSchema);

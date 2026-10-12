@@ -8,4 +8,5 @@ const schema = new mongoose.Schema({
     deleted: { type: Boolean, default: false }
 }, { timestamps: true });
 schema.index({ inviteHash: 1 }, { unique: true });
+schema.plugin(require('./archive'));
 module.exports = mongoose.model('Group', schema);

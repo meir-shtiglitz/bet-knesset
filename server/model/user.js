@@ -37,4 +37,5 @@ userSchema.methods.checkPassword = function(password) {
     return verifyPassword(password, this.hashPasword);
 };
 
+userSchema.plugin(require('./archive'));
 module.exports = mongoose.model("User", userSchema);

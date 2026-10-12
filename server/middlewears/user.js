@@ -6,7 +6,7 @@ async function authenticate(token, req, res, next) {
     catch (_) { return res.status(401).json({ error: 'Please sign in again' }); }
     try {
         const user = await User.findById(claims.sub);
-        if (!user || user.disabled || claims.version !== (user.tokenVersion || 0)) return res.status(401).json({ error: 'Please sign in again' });
+        if (!user || user.archived || user.disabled || claims.version !== (user.tokenVersion || 0)) return res.status(401).json({ error: 'Please sign in again' });
         req.user = user;
         req.tokenId = String(user._id);
         next();
@@ -17,8 +17,12 @@ exports.isLoged = (req, res, next) => {
     return authenticate(match ? match[1] : undefined, req, res, next);
 };
 exports.restoreSession = (req, res, next) => authenticate(req.body && req.body.token, req, res, next);
-// Role 0 is a participant; only explicit role 1 grants administration.
+// Role 0 is a participant, 1 is admin, and 5 is superAdmin.
 exports.isAdmin = (req, res, next) => {
-    if (!req.user || req.user.role !== 1) return res.status(403).json({ error: 'For admins only' });
+    if (!req.user || ![1, 5].includes(req.user.role)) return res.status(403).json({ error: 'For admins only' });
+    next();
+};
+exports.isSuperAdmin = (req, res, next) => {
+    if (!req.user || req.user.role !== 5) return res.status(403).json({ error: 'לסופר־אדמין בלבד' });
     next();
 };

@@ -29,7 +29,7 @@ router.post('/add', rateLimit({ limit: 30 }), isLoged, async (req, res) => {
         // write admission. Database completion may occur after the cutoff.
         if (!isOpen(await Session.findById(data.sessionId))) return res.status(403).json({ error: 'Election is closed for predictions' });
         const filter = { userId: req.tokenId, sessionId: data.sessionId };
-        const update = { $set: { bets: Object.entries(data.bets).map(([partyId, predictedSeats]) => ({ partyId, predictedSeats })) } };
+        const update = { $set: { bets: Object.entries(data.bets).map(([partyId, predictedSeats]) => ({ partyId, predictedSeats })) }, $unset: { score: 1, place: 1 } };
         const options = { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true };
         let bet;
         try {

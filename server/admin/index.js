@@ -77,7 +77,7 @@ const calculateWinnerScore = (predictions, results, createdAt, publishedAt) => {
 
 // Manual admin helper; deliberately not exposed through an HTTP route.
 // The caller supplies the election ID and manages the database connection.
-const calculateWinners = async (sessionId) => {
+const calculateWinners = async (sessionId, { preview = false } = {}) => {
     if (!ObjectId.isValid(sessionId)) throw new Error('Invalid election ID');
     const session = await Session.findById(sessionId);
     if (!session) throw new Error('Election not found');
@@ -105,6 +105,8 @@ const calculateWinners = async (sessionId) => {
         return { updateOne: { filter: { _id: bet._id, sessionId },
             update: { $set: { score: calculateWinnerScore(bet.bets, result.results, bet.createdAt, result.publishedAt) } } } };
     });
+    if (preview) return { sessionId: String(sessionId), scoredBets: updates.length,
+        ranking: bets.map((bet,i)=>({betId:String(bet._id),userId:String(bet.userId),score:updates[i].updateOne.update.$set.score})).sort((a,b)=>b.score-a.score) };
     if (updates.length) await Bet.bulkWrite(updates);
     return { sessionId: String(sessionId), scoredBets: updates.length };
 };
