@@ -44,7 +44,7 @@ function Voted() {
     const isPassedVoted = session?.isClosed !== false ||
         !session?.startDate || !session?.endDate ||
         !(new Date(session.startDate) <= new Date() && new Date() < new Date(session.endDate))
-    const isValid = Object.values(partiesRes).every(value => Number.isInteger(value) && value >= 0 && value <= 120)
+    const isValid = Object.values(partiesRes).every(value => Number.isInteger(value) && (value === 0 || value >= 4) && value <= 120)
     const sum = Object.values(partiesRes).reduce((a, b) => a + b, 0)
     
     useEffect(() => {
