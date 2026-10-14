@@ -45,7 +45,7 @@ function submit(bets) {
     for(const seats of [10,50,0]) {
         const response=await submit({[first]:seats,[second]:120-seats});
         assert.equal(response.status,400);assert.equal(response.body.code,'PREDICTION_OUT_OF_RANGE');
-        assert.equal(response.body.error,'מצטערים ההימור שלך זוהה כפייק נסה שוב מאוחר יותר');
+        assert.equal(response.body.error,'מצטערים ההימור שלך זוהה כפייק נסה לתקן את הנתונים');
     }
     assert.equal((await submit({[second]:120})).status,400); // Omitted party is zero, below its minimum.
     assert.equal(writes,0);

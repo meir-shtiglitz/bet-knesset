@@ -21,7 +21,7 @@ router.post('/add', rateLimit({ limit: 30 }), isLoged, async (req, res) => {
         if (Object.keys(data.bets).some(id => !allowed.has(id))) return res.status(400).json({ error: 'Party does not belong to this election' });
         if (!isWithinPartyRanges(data.bets, parties)) return res.status(400).json({
             code: 'PREDICTION_OUT_OF_RANGE',
-            error: 'מצטערים ההימור שלך זוהה כפייק נסה שוב מאוחר יותר'
+            error: 'מצטערים ההימור שלך זוהה כפייק נסה לתקן את הנתונים'
         });
         // Fail closed until the compound unique index has been built successfully.
         await Bet.init();

@@ -79,7 +79,7 @@ function Voted() {
                 icon: 'error',
                 title: 'אופסססס',
                 text: err.response?.data?.code === 'PREDICTION_OUT_OF_RANGE'
-                    ? 'מצטערים ההימור שלך זוהה כפייק נסה שוב מאוחר יותר'
+                    ? 'מצטערים ההימור שלך זוהה כפייק נסה לתקן את הנתונים'
                     : 'משהו השתבש וההימור שלך לא נקלט, נסה שוב מאוחר יותר',
                 confirmButtonText: 'אישור'
             })

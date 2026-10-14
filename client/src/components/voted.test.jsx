@@ -23,7 +23,7 @@ test('party limits are reported only after submission and leave the prediction e
     expect(axios.post).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button',{name:'שלח הימור'}));
     await waitFor(()=>expect(Swal.fire).toHaveBeenCalledWith(expect.objectContaining({
-        text:'מצטערים ההימור שלך זוהה כפייק נסה שוב מאוחר יותר'
+        text:'מצטערים ההימור שלך זוהה כפייק נסה לתקן את הנתונים'
     })));
     expect(axios.post).toHaveBeenCalledWith(expect.any(String),{bets:{p1:50,p2:70},sessionId:'s1'},expect.any(Object));
     expect(inputs[0]).not.toHaveAttribute('readonly');
