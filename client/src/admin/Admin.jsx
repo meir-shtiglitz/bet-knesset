@@ -4,15 +4,16 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { ApiUrl } from '../apiUrl';
 
-const titles = {sessions:'מערכות בחירות',parties:'מפלגות',users:'משתמשים',bets:'הימורים',groups:'קבוצות',memberships:'חברי קבוצה',results:'תוצאות אמת ודירוג'};
+const titles = {sessions:'מערכות בחירות',parties:'מפלגות',users:'משתמשים',bets:'הימורים',groups:'קבוצות',memberships:'חברי קבוצה',results:'תוצאות אמת ודירוג',polls:'סקרים וסוקרים'};
 const fields = {
+    polls:[['pollsterName','שם עורך הסקר'],['pollDate','תאריך עריכת הסקר','date'],['color','צבע בגרף','color']],
     sessions:[['name','שם'],['slug','כתובת הבחירות'],['description','תיאור','textarea'],['startDate','פתיחת הימורים','datetime-local'],['endDate','סגירת הימורים','datetime-local'],['isClosed','סגור להימורים','checkbox']],
     parties:[['name','שם'],['chars','אותיות'],['subtext','תיאור','textarea'],['minPredictedSeats','מינימום מנדטים','number'],['maxPredictedSeats','מקסימום מנדטים','number']],
     users:[['name','שם'],['email','אימייל','email'],['role','סוג משתמש','role'],['disabled','משתמש חסום','checkbox']],
     groups:[['name','שם'],['description','תיאור','textarea'],['creatorId','יוצר הקבוצה']],
     memberships:[['userId','משתמש'],['status','מצב חברות','status']]
 };
-const initial = type => ({sessions:{name:'',slug:'',description:'',startDate:'',endDate:'',isClosed:false},parties:{name:'',chars:'',subtext:'',minPredictedSeats:0,maxPredictedSeats:120},
+const initial = type => ({polls:{pollsterName:'',pollDate:localDate(new Date()).slice(0,10),color:'#1655a7'},sessions:{name:'',slug:'',description:'',startDate:'',endDate:'',isClosed:false},parties:{name:'',chars:'',subtext:'',minPredictedSeats:0,maxPredictedSeats:120},
     groups:{name:'',description:'',creatorId:''},memberships:{userId:'',status:'active'}}[type] || {});
 const localDate = value => {
     if(!value) return '';
@@ -55,6 +56,7 @@ function AdminWorkspace({token}) {
     const [search,setSearch]=useState(''),[archived,setArchived]=useState(false),[editing,setEditing]=useState(null),[form,setForm]=useState({});
     const [parties,setParties]=useState([]),[resultForm,setResultForm]=useState({}),[publishedAt,setPublishedAt]=useState('');
     const [preview,setPreview]=useState(null);
+    const [pollResults,setPollResults]=useState(null);
     const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[refresh,setRefresh]=useState(0);
     const api=useCallback(async(path,method='get',data)=>{
         const response=await axios({url:`${ApiUrl}/admin${path}`,method,data,headers:{Authorization:`Bearer ${token}`}});return response.data;
@@ -65,7 +67,7 @@ function AdminWorkspace({token}) {
         return rows;
     },[api]);
     useEffect(()=>{let active=true;all('sessions').then(rows=>{if(active)setSessions(rows);}).catch(()=>{if(active)setError('לא ניתן לטעון מערכות בחירות');});return()=>{active=false;};},[all,refresh]);
-    useEffect(()=>{setEditing(null);setPage(1);setSearch('');setArchived(false);setNotice('');setPreview(null);},[section,sessionId,userId,groupId]);
+    useEffect(()=>{setEditing(null);setPollResults(null);setPage(1);setSearch('');setArchived(false);setNotice('');setPreview(null);},[section,sessionId,userId,groupId]);
     useEffect(()=>{
         let active=true;setError('');setLoading(true);setItems([]);setParties([]);
         if(!titles[section]) {setError('מסך לא נמצא');setLoading(false);return;}
@@ -97,7 +99,7 @@ function AdminWorkspace({token}) {
         try {
             let value=initial(section);
             if(item){
-                value=Object.fromEntries((fields[section]||[]).map(([key,,kind])=>[key,kind==='datetime-local'?localDate(item[key]):['creatorId','userId'].includes(key)?identifier(item[key]):item[key]??(kind==='checkbox'?false:'')]));
+                value=Object.fromEntries((fields[section]||[]).map(([key,,kind])=>[key,kind==='datetime-local'?localDate(item[key]):kind==='date'?new Date(item[key]).toISOString().slice(0,10):['creatorId','userId'].includes(key)?identifier(item[key]):item[key]??(kind==='checkbox'?false:'')]));
             }
             if(section==='bets') {
                 const rows=await all('parties',{sessionId:identifier(item.sessionId)});setParties(rows);
@@ -112,7 +114,7 @@ function AdminWorkspace({token}) {
         await run(async()=>{
             const data={...form};
             if(section==='sessions'){data.startDate=new Date(data.startDate).toISOString();data.endDate=new Date(data.endDate).toISOString();}
-            if(section==='parties')data.sessionId=identifier(editing.sessionId)||sessionId;
+            if(['parties','polls'].includes(section))data.sessionId=identifier(editing.sessionId)||sessionId;
             if(section==='memberships')data.groupId=groupId;
             await api(`/${section}${editing._id?`/${editing._id}`:''}`,editing._id?'patch':'post',data);setEditing(null);
         });
@@ -123,11 +125,11 @@ function AdminWorkspace({token}) {
     }
     const adminLink=(type,extra={})=>`/admin/${type}?${new URLSearchParams({...(sessionId?{sessionId}:{}),...extra})}`;
     const setSession=value=>{setPage(1);setEditing(null);setSearchParams({...Object.fromEntries(searchParams),sessionId:value});};
-    const rowName=item=>item.name||item.userId?.name||item.userId?.email||item._id;
+    const rowName=item=>item.name||item.pollsterName||item.userId?.name||item.userId?.email||item._id;
     return <main className="container text-end pb-5" dir="rtl">
         <h1>ניהול האתר</h1><Link to="/">חזרה לאתר</Link>
         <nav aria-label="ניהול האתר" className="d-flex flex-wrap gap-2 my-3">
-            {['sessions','parties','users','bets','groups','results'].map(type=><Link key={type} className={`btn ${section===type?'btn-primary':'btn-outline-primary'}`} to={adminLink(type)}>{titles[type]}</Link>)}
+            {['sessions','parties','users','bets','groups','results','polls'].map(type=><Link key={type} className={`btn ${section===type?'btn-primary':'btn-outline-primary'}`} to={adminLink(type)}>{titles[type]}</Link>)}
         </nav>
         <h2>{titles[section]||'מסך לא נמצא'}</h2>
         {error&&<p role="alert" className="text-danger">{error}</p>}{notice&&<p role="status" className="text-success">{notice}</p>}
@@ -156,15 +158,25 @@ function AdminWorkspace({token}) {
         </section>}
         {section!=='results'&&<>
             <div className="d-flex flex-wrap gap-2 align-items-end my-3">
-                {['sessions','parties','users','groups'].includes(section)&&<label>חיפוש<input className="form-control" value={search} onChange={e=>{setPage(1);setSearch(e.target.value);}}/></label>}
+                {['sessions','parties','users','groups','polls'].includes(section)&&<label>חיפוש<input className="form-control" value={search} onChange={e=>{setPage(1);setSearch(e.target.value);}}/></label>}
                 <label><input type="checkbox" checked={archived} onChange={e=>{setArchived(e.target.checked);setPage(1);setEditing(null);}}/> הצגת ארכיון</label>
                 {section==='bets'&&<button disabled={busy} className="btn btn-outline-secondary" onClick={()=>run(async()=>{
                     const query=new URLSearchParams({archived:String(archived),...(sessionId?{sessionId}:{}),...(userId?{userId}:{})});
                     const csv=await api(`/export/bets?${query}`),url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
                     const link=document.createElement('a');link.href=url;link.download='predictions.csv';document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);
                 },'הייצוא הוכן להורדה',false)}>ייצוא CSV</button>}
-                {['sessions','parties','groups','memberships'].includes(section)&&<button className="btn btn-primary" disabled={busy||(section==='parties'&&!sessionId)||(section==='memberships'&&!groupId)} onClick={()=>edit(null)}>הוספת רשומה</button>}
+                {['sessions','parties','groups','memberships','polls'].includes(section)&&<button className="btn btn-primary" disabled={busy||(['parties','polls'].includes(section)&&!sessionId)||(section==='memberships'&&!groupId)} onClick={()=>edit(null)}>{section==='polls'?'הוספת סקר':'הוספת רשומה'}</button>}
             </div>
+            {section==='polls'&&pollResults&&<form className="border rounded p-3 mb-3" onSubmit={e=>{e.preventDefault();run(async()=>{
+                await api(`/polls/${pollResults.poll._id}/results`,'put',{predictions:pollResults.parties.map(p=>({partyId:p._id,predictedSeats:Number(pollResults.values[p._id])}))});setPollResults(null);
+            },'תוצאות הסקר נשמרו ויוצגו בתחרות הסוקרים');}}>
+                <h3>תוצאות הסקר — {pollResults.poll.pollsterName} ({new Date(pollResults.poll.pollDate).toLocaleDateString('he-IL',{timeZone:'UTC'})})</h3>
+                <p>מערכת בחירות: {sessions.find(s=>s._id===identifier(pollResults.poll.sessionId))?.name||'הבחירות המשויכות לסקר'}</p>
+                {pollResults.parties.map(p=><label key={p._id} className="d-block my-2">{p.name}<input required className="form-control" type="number" min="0" max="120" step="1" value={pollResults.values[p._id]??0} onChange={e=>setPollResults({...pollResults,values:{...pollResults.values,[p._id]:e.target.value===''?'':e.target.valueAsNumber}})}/></label>)}
+                <p>סך הכול: {Object.values(pollResults.values).reduce((sum,n)=>sum+Number(n),0)} / 120</p>
+                <button className="btn btn-primary" disabled={busy||!pollResults.parties.length||Object.values(pollResults.values).reduce((sum,n)=>sum+Number(n),0)!==120}>שמירת תוצאות הסקר</button>{' '}
+                <button type="button" className="btn btn-secondary" onClick={()=>setPollResults(null)}>ביטול</button>
+            </form>}
             {editing&&<form onSubmit={save} className="border rounded p-3 mb-3">
                 <h3>{editing._id?'עריכת רשומה':'רשומה חדשה'}</h3>
                 {(fields[section]||[]).map(([key,label,kind='text'])=><label key={key} className="d-block my-2">{label}
@@ -184,12 +196,16 @@ function AdminWorkspace({token}) {
                     {section==='users'&&<>{item.email}<br/>תפקיד: {item.role}{item.disabled?' · חסום':''}</>}
                     {section==='sessions'&&<>{item.slug}<br/>{item.isClosed?'סגור':'פתוח'} · {new Date(item.endDate).toLocaleString('he-IL')}</>}
                     {section==='parties'&&<>טווח: {item.minPredictedSeats??0}–{item.maxPredictedSeats??120}</>}
+                    {section==='polls'&&<><span style={{display:'inline-block',width:20,height:20,backgroundColor:item.color,border:'1px solid #777'}}/> {new Date(item.pollDate).toLocaleDateString('he-IL',{timeZone:'UTC'})}<br/>{item.completed?'תוצאות הוזנו':'ממתין להזנת תוצאות'}</>}
                     {section==='bets'&&<>{item.sessionId?.name}<br/>ניקוד: {item.score??'טרם חושב'}<br/>הוגש: {new Date(item.createdAt).toLocaleString('he-IL')}<details><summary>צפייה בהימור</summary><ul>{item.bets.map(b=><li key={identifier(b.partyId)}>{b.partyId?.name||identifier(b.partyId)}: {b.predictedSeats} מנדטים</li>)}</ul></details></>}
                     {section==='groups'&&<>יוצר: {item.creatorId?.name||identifier(item.creatorId)}</>}
                     {section==='memberships'&&<>{item.userId?.email}<br/>{({active:'פעיל',left:'עזב',blocked:'חסום'})[item.status]}</>}
                 </td><td><div className="d-flex flex-wrap gap-2">
                     {!item.archived&&<button disabled={busy} className="btn btn-outline-primary btn-sm" onClick={()=>edit(item)}>עריכה</button>}
                     <button disabled={busy} className="btn btn-outline-danger btn-sm" onClick={()=>archive(item)}>{item.archived?'שחזור':'מחיקה / ארכוב'}</button>
+                    {section==='polls'&&!item.archived&&<button disabled={busy} className="btn btn-outline-primary btn-sm" onClick={()=>run(async()=>{
+                        const data=await api(`/polls/${item._id}/results`);setEditing(null);setPollResults({...data,values:Object.fromEntries(data.parties.map(p=>[p._id,data.poll.predictions.find(r=>r.partyId===p._id)?.predictedSeats??0]))});
+                    },'',false)}>הזנת תוצאות הסקר</button>}
                     {section==='users'&&<Link className="btn btn-outline-secondary btn-sm" to={adminLink('bets',{userId:item._id})}>הימורים</Link>}
                     {section==='groups'&&<Link className="btn btn-outline-secondary btn-sm" to={adminLink('memberships',{groupId:item._id})}>חברי הקבוצה</Link>}
                     {section==='sessions'&&<Link className="btn btn-outline-secondary btn-sm" to={`/admin/results?sessionId=${item._id}`}>תוצאות ודירוג</Link>}

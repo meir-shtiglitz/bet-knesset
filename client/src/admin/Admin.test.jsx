@@ -100,3 +100,24 @@ test('global election selection follows navigation and a user prediction link',a
     expect(screen.getByLabelText('מערכת בחירות')).toHaveValue('s1');
     await waitFor(()=>expect(axios.mock.calls.some(([c])=>c.url.includes('/bets?')&&c.url.includes('sessionId=s1')&&c.url.includes('userId=u1'))).toBe(true));
 });
+test('superAdmin creates a dated poll with a selected color and election',async()=>{
+    mount('/admin/polls?sessionId=s1');await screen.findByRole('button',{name:'הוספת סקר'});
+    fireEvent.click(screen.getByRole('button',{name:'הוספת סקר'}));
+    const name=await screen.findByLabelText('שם עורך הסקר');
+    fireEvent.change(name,{target:{value:'New pollster'}});
+    fireEvent.change(screen.getByLabelText('תאריך עריכת הסקר'),{target:{value:'2026-01-01'}});
+    fireEvent.change(screen.getByLabelText('צבע בגרף'),{target:{value:'#008800'}});
+    fireEvent.click(screen.getByRole('button',{name:'שמירה'}));
+    await waitFor(()=>expect(axios).toHaveBeenCalledWith(expect.objectContaining({method:'post',url:expect.stringContaining('/admin/polls'),data:{sessionId:'s1',pollsterName:'New pollster',pollDate:'2026-01-01',color:'#008800'}})));
+});
+test('poll results are entered separately and require a total of 120',async()=>{
+    const poll={_id:'poll1',sessionId:'s1',pollsterName:'Poll author',pollDate:'2026-01-01',color:'#008800',predictions:[],completed:false};
+    axios.mockImplementation(async({url,method})=>({data:method!=='get'?{saved:true}:url.endsWith('/poll1/results')?{poll,parties}:url.includes('/polls?')?page([poll]):page([session])}));
+    mount('/admin/polls?sessionId=s1');await screen.findByRole('button',{name:'הזנת תוצאות הסקר'});
+    fireEvent.click(screen.getByRole('button',{name:'הזנת תוצאות הסקר'}));
+    const first=await screen.findByLabelText('First');
+    expect(screen.getByRole('button',{name:'שמירת תוצאות הסקר'})).toBeDisabled();
+    fireEvent.change(first,{target:{value:'60'}});fireEvent.change(screen.getByLabelText('Second'),{target:{value:'60'}});
+    fireEvent.click(screen.getByRole('button',{name:'שמירת תוצאות הסקר'}));
+    await waitFor(()=>expect(axios).toHaveBeenCalledWith(expect.objectContaining({method:'put',url:expect.stringContaining('/polls/poll1/results'),data:{predictions:[{partyId:'p1',predictedSeats:60},{partyId:'p2',predictedSeats:60}]}})));
+});

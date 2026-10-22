@@ -8,6 +8,8 @@ const Bet = require('../model/bets');
 const Group = require('../model/group');
 const Membership = require('../model/group-membership');
 const Result = require('../model/results');
+const Poll = require('../model/poll');
+const {complete:completePoll}=require('../security/polls');
 const { isLoged, isSuperAdmin } = require('../middlewears/user');
 const { rateLimit } = require('../security/rate-limit');
 const { validatePrediction, isWithinPartyRanges } = require('../security/predictions');
@@ -17,6 +19,7 @@ router.use(isLoged, isSuperAdmin, rateLimit({ limit: 300 }));
 const id = Joi.string().pattern(/^[a-f0-9]{24}$/).required();
 const seats = Joi.number().integer().min(0).max(120).required();
 const schemas = {
+    polls:Joi.object({sessionId:id,pollsterName:Joi.string().trim().min(1).max(100).required(),pollDate:Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),color:Joi.string().pattern(/^#[0-9a-fA-F]{6}$/).required()}).required(),
     sessions: Joi.object({ name: Joi.string().trim().min(1).max(100).required(), slug: Joi.string().max(100).pattern(/^[\p{L}\p{N}_-]+$/u).required(),
         description: Joi.string().allow('').max(2000).default(''), startDate: Joi.string().isoDate().required(), endDate: Joi.string().isoDate().required(), isClosed: Joi.boolean().required() }).required(),
     parties: Joi.object({ sessionId: id, name: Joi.string().trim().min(1).max(100).required(), chars: Joi.string().allow('').max(20).default(''), subtext: Joi.string().allow('').max(500).default(''),
@@ -26,8 +29,9 @@ const schemas = {
     bets: Joi.object({bets:Joi.object().pattern(/^[a-f0-9]{24}$/, seats).min(1).max(120).required()}).required(),
     memberships: Joi.object({groupId:id,userId:id,status:Joi.string().valid('active','left','blocked').required()}).required()
 };
-const models = {sessions:Session,parties:Party,users:User,bets:Bet,groups:Group,memberships:Membership};
+const models = {sessions:Session,parties:Party,users:User,bets:Bet,groups:Group,memberships:Membership,polls:Poll};
 const projections = {
+    polls:'sessionId pollsterName pollDate color completed predictions archived',
     sessions:'name slug description startDate endDate isClosed archived',
     parties:'sessionId name chars subtext minPredictedSeats maxPredictedSeats archived',
     users:'name email role disabled archived createdAt',
@@ -64,7 +68,7 @@ router.get('/:type',safe(async(req,res)=>{
     const {type}=req.params, Model=models[type];if(!Model) fail(404,'מסך לא נמצא');
     const query=validate(listSchema,req.query);
     const filter={archived:query.archived==='true'?true:{$ne:true}};
-    if(query.sessionId && ['parties','bets'].includes(type)) filter.sessionId=query.sessionId;
+    if(query.sessionId && ['parties','bets','polls'].includes(type)) filter.sessionId=query.sessionId;
     if(query.sessionId && type==='sessions') filter._id=query.sessionId;
     if(query.sessionId && ['users','groups','memberships'].includes(type)) {
         const participants=await Bet.find({sessionId:query.sessionId}).select('userId');
@@ -81,9 +85,9 @@ router.get('/:type',safe(async(req,res)=>{
         else filter.userId=query.userId;
     }
     if(query.groupId && type==='memberships') filter.groupId=query.groupId;
-    if(query.q && ['sessions','parties','users','groups'].includes(type)) {
+    if(query.q && ['sessions','parties','users','groups','polls'].includes(type)) {
         const regex=new RegExp(query.q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i');
-        filter.$or=(type==='users'?['name','email']:['name']).map(field=>({[field]:regex}));
+        filter.$or=(type==='users'?['name','email']:type==='polls'?['pollsterName']:['name']).map(field=>({[field]:regex}));
     }
     const page=Number(query.page),pageSize=25;
     const total=await Model.countDocuments(filter).withArchived();
@@ -110,7 +114,14 @@ router.get('/export/bets',safe(async(req,res)=>{
     res.type('text/csv').set('Content-Disposition','attachment; filename="predictions.csv"').send('\uFEFF'+rows.map(row=>row.map(cell).join(',')).join('\r\n'));
 }));
 async function update(type, doc, data, req, creating) {
-    if(type==='sessions') {
+    if(type==='polls') {
+        const session=await Session.findById(data.sessionId);
+        const date=new Date(data.pollDate+'T00:00:00.000Z');
+        if(!session || !Number.isFinite(+date) || date.toISOString().slice(0,10)!==data.pollDate || date>new Date() || date>new Date(session.endDate))fail(400,'תאריך הסקר חייב להיות תקין, לא בעתיד ולא לאחר סגירת הבחירות');
+        if(!creating && String(doc.sessionId)!==data.sessionId)fail(400,'לא ניתן להעביר סקר למערכת בחירות אחרת');
+        if(await Poll.findOne({sessionId:data.sessionId,pollsterName:data.pollsterName,pollDate:date,_id:{$ne:doc._id}}))fail(409,'כבר קיים סקר של עורך זה בתאריך שנבחר');
+        Object.assign(doc,{...data,pollDate:date});await doc.save();
+    } else if(type==='sessions') {
         if(new Date(data.startDate)>=new Date(data.endDate)) fail(400,'מועד הפתיחה חייב להיות לפני הסגירה');
         if(await Session.findOne({slug:data.slug,_id:{$ne:doc._id}}).withArchived()) fail(409,'כתובת הבחירות כבר קיימת');
         Object.assign(doc,data);await doc.validate();await invalidate(doc._id);await doc.save();
@@ -151,7 +162,7 @@ async function update(type, doc, data, req, creating) {
 }
 router.post('/:type',safe(async(req,res)=>{
     const {type}=req.params;
-    if(!['sessions','parties','groups','memberships'].includes(type)) fail(400,'יצירה אינה זמינה למסך זה');
+    if(!['sessions','parties','groups','memberships','polls'].includes(type)) fail(400,'יצירה אינה זמינה למסך זה');
     const data=validate(schemas[type],req.body),doc=new models[type]();
     await update(type,doc,data,req,true);res.status(201).json({item:view(type,doc)});
 }));
@@ -170,7 +181,7 @@ router.post('/:type/:id/archive',safe(async(req,res)=>{
         const group=await Group.findById(doc.groupId).withArchived();
         if(group&&String(group.creatorId)===String(doc.userId)) fail(400,'יש לשנות את יוצר הקבוצה לפני הסרתו');
     }
-    if(type==='parties'&&archived&&(await Bet.exists({sessionId:doc.sessionId,'bets.partyId':doc._id}) || await Result.exists({sessionId:doc.sessionId,'results.partyId':doc._id}))) fail(409,'המפלגה משויכת להימורים או תוצאות. ניתן לארכב את מערכת הבחירות כולה');
+    if(type==='parties'&&archived&&(await Bet.exists({sessionId:doc.sessionId,'bets.partyId':doc._id}) || await Result.exists({sessionId:doc.sessionId,'results.partyId':doc._id}) || await Poll.exists({sessionId:doc.sessionId,'predictions.partyId':doc._id}))) fail(409,'המפלגה משויכת להימורים, סקרים או תוצאות. ניתן לארכב את מערכת הבחירות כולה');
     doc.archived=archived;
     if(type==='users') doc.tokenVersion=(doc.tokenVersion||0)+1;
     if(type==='groups'&&!archived) doc.deleted=false;
@@ -187,6 +198,18 @@ router.post('/:type/:id/archive',safe(async(req,res)=>{
 router.get('/sessions/:id/results',safe(async(req,res)=>{
     const session=await find(Session,req.params.id);
     res.json({result:await Result.findOne({sessionId:session._id}),parties:await Party.find({sessionId:session._id}).select('name chars')});
+}));
+router.get('/polls/:id/results',safe(async(req,res)=>{
+    const poll=await find(Poll,req.params.id);
+    res.json({poll:view('polls',poll),parties:await Party.find({sessionId:poll.sessionId}).select('name chars')});
+}));
+router.put('/polls/:id/results',safe(async(req,res)=>{
+    const poll=await find(Poll,req.params.id);
+    if(poll.archived||!await Session.findById(poll.sessionId))fail(400,'הסקר או מערכת הבחירות בארכיון');
+    const data=validate(Joi.object({predictions:Joi.array().items(Joi.object({partyId:id,predictedSeats:seats})).min(1).max(120).required()}).required(),req.body);
+    const parties=await Party.find({sessionId:poll.sessionId});
+    if(!completePoll(data.predictions,parties))fail(400,'יש להזין את כל המפלגות ובסך הכול 120 מנדטים');
+    poll.predictions=data.predictions;poll.completed=true;await poll.save();res.json({saved:true});
 }));
 router.put('/sessions/:id/results',safe(async(req,res)=>{
     const session=await find(Session,req.params.id);

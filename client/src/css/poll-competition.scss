@@ -1,0 +1,12 @@
+.poll-competition {
+    margin-bottom: 2rem;
+    .poll-table-wrap { overflow-x: auto; border: 1px solid #d4dce8; border-radius: 8px; }
+    .poll-table { margin-bottom: 0; text-align: right; }
+    .poll-table th, .poll-table td { min-width: 115px; padding: 12px; vertical-align: middle; }
+    .poll-table tr > th:first-child { position: sticky; right: 0; background: #fff; z-index: 1; min-width: 100px; }
+    .poll-table thead th { background: #f2f6fc; }
+    .poll-color { display: inline-block; width: 14px; height: 14px; margin-inline-end: 6px; border: 1px solid #777; border-radius: 3px; }
+    .poll-seats > span { font-weight: 600; }
+    .poll-track { height: 16px; width: 100%; min-width: 80px; background: #eef0f4; border-radius: 3px; overflow: hidden; }
+    .poll-track > div { height: 100%; }
+}

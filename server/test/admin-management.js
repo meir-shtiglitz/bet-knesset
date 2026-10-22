@@ -11,6 +11,7 @@ const Bet=require('../model/bets');
 const Group=require('../model/group');
 const Membership=require('../model/group-membership');
 const Result=require('../model/results');
+const Poll=require('../model/poll');
 const {issueToken}=require('../security/tokens');
 process.env.JWT_SECRET=crypto.randomBytes(48).toString('hex');
 const {createApp}=require('../app');
@@ -29,7 +30,7 @@ async function expect(path,method,data,token,status=200) {
 }
 (async()=>{
     await mongoose.connect(`mongodb://127.0.0.1:27017/${database}`,{useNewUrlParser:true,useUnifiedTopology:true,useFindAndModify:false});
-    await Promise.all([User,Session,Party,Bet,Group,Membership,Result].map(m=>m.init()));
+    await Promise.all([User,Session,Party,Bet,Group,Membership,Result,Poll].map(m=>m.init()));
     const accounts=await User.create([0,1,5].map(role=>({name:`Role ${role}`,email:`role${role}@example.com`,role,hashPasword:'unused-test-hash'})));
     const [participant,admin,superAdmin]=accounts;
     const token=issueToken(superAdmin);
@@ -108,6 +109,33 @@ async function expect(path,method,data,token,status=200) {
     await expect(`/api/groups/${group._id}/charts/${session._id}`,'GET',undefined,issueToken(admin),403);
     await expect(`/api/groups/${group._id}`,'GET',undefined,token,403);
     await expect(`/api/groups/${group._id}`,'DELETE',undefined,token,403);
+    await expect('/api/admin/polls','POST',{},issueToken(participant),403);
+    const pollIds=[];
+    for(const [pollsterName,pollDate,seats] of [['First','2026-01-01',60],['First','2026-01-02',62],['Second','2026-01-01',60]]) {
+        const metadata={sessionId:session._id,pollsterName,pollDate,color:'#ff0088'};
+        const poll=(await expect('/api/admin/polls','POST',metadata,token,201)).item;pollIds.push(poll._id);
+        await expect(`/api/admin/polls/${poll._id}/results`,'PUT',{predictions:[{partyId:parties[0]._id,predictedSeats:119}]},token,400);
+        await expect(`/api/admin/polls/${poll._id}/results`,'PUT',{predictions:[{partyId:parties[0]._id,predictedSeats:seats},{partyId:parties[1]._id,predictedSeats:120-seats}]},token);
+        await expect('/api/admin/polls','POST',metadata,token,409);
+    }
+    await expect('/api/admin/polls','POST',{sessionId:session._id,pollsterName:'Bad',pollDate:'2026-02-30',color:'#ff0000'},token,400);
+    await expect('/api/admin/polls','POST',{sessionId:session._id,pollsterName:'Bad',pollDate:'2026-01-01',color:'red'},token,400);
+    const latestPolls=await expect(`/api/polls/${session._id}`,'GET');
+    assert.equal(latestPolls.polls.length,2);assert.equal(latestPolls.averages[0].avg,61);assert.equal(latestPolls.ranking[0].pollsterName,'Second');checks+=3;
+    const datedPolls=await expect(`/api/polls/${session._id}?date=2026-01-01`,'GET');
+    assert.equal(datedPolls.polls.length,2);assert.equal(datedPolls.averages[0].avg,60);checks+=2;
+    const scoreFields=await Poll.find({sessionId:session._id}).lean();
+    assert(!scoreFields.some(p=>Object.hasOwnProperty.call(p,'score')));checks++;
+    await expect(`/api/admin/sessions/${session._id}/results`,'PUT',{...actual,results:[{partyId:parties[0]._id,actualSeats:62},{partyId:parties[1]._id,actualSeats:58}]},token);
+    const recalculated=await expect(`/api/polls/${session._id}`,'GET');
+    assert.equal(recalculated.ranking[0].pollsterName,'First');checks++;
+    await expect(`/api/admin/sessions/${session._id}/results`,'DELETE',undefined,token);
+    const noResults=await expect(`/api/polls/${session._id}`,'GET');assert.equal(noResults.result,null);assert.equal(noResults.ranking.length,0);checks+=2;
+    await expect(`/api/admin/sessions/${session._id}/results/restore`,'POST',{},token);
+    await expect(`/api/admin/polls/${pollIds[1]}/archive`,'POST',{archived:true},token);
+    const fallback=await expect(`/api/polls/${session._id}`,'GET');assert.equal(fallback.polls.find(p=>p.pollsterName==='First')._id,pollIds[0]);checks++;
+    await expect(`/api/admin/polls/${pollIds[1]}/archive`,'POST',{archived:false},token);
+    const otherPolls=await expect(`/api/polls/${secondSession._id}`,'GET');assert.equal(otherPolls.polls.length,0);checks++;
     await expect(`/api/admin/users/${superAdmin._id}`,'PATCH',{name:superAdmin.name,email:superAdmin.email,role:0,disabled:false},token,400);
     await expect(`/api/admin/users/${superAdmin._id}/archive`,'POST',{archived:true},token,400);
     await expect(`/api/admin/users/${participant._id}`,'PATCH',{name:participant.name,email:participant.email,role:0,disabled:true},token);

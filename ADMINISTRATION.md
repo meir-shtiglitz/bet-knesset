@@ -10,6 +10,9 @@ The administration screens support:
 - Predictions: filter by user/session, edit the complete 120-seat allocation even after the election ends, archive/restore, and export CSV (up to 10,000 filtered records).
 - Groups: edit/create a group and select its creator; view members, add membership, edit active/left/blocked status, archive/restore memberships and groups.
 - Actual results: enter all parties and exactly 120 seats after the election ends, set publication time, archive/restore results, preview the ranking without saving scores, and explicitly calculate/save scores.
+- Polls: select an election, create a poll with author name, survey date and color, then enter all party seat counts (exactly 120) in its separate results form. Drafts are hidden until their results are saved. Polls can be edited, archived and restored; the same author can publish polls on different dates. Use a consistent author name: latest-per-author selection normalizes case and surrounding whitespace.
+
+The public **תחרות הסוקרים** is independent of group selection and requires no login. It defaults to the latest complete poll from each author and supports exact survey-date selection. Its average column uses the displayed polls, one per author. Valid actual results are added as a separate column. Poll rankings are calculated dynamically using the same accuracy formula and chronological tie bonus as participant scores (survey date replaces submission time); scores are never written to poll documents. The pending message remains visible until complete actual results exist. Up to 1,000 completed polls per election are supported; larger datasets return an explicit error rather than a truncated comparison.
 
 Each list is paginated (25 records per page). Search and data access are server-side. Account responses do not expose password hashes, reset tokens or invitation codes. Group ownership changes establish an active membership for the new creator.
 

@@ -14,6 +14,7 @@ jest.mock('axios', () => jest.fn());
 jest.mock('../components/auth', () => () => <p>Sign in or register</p>);
 jest.mock('../components/voted', () => () => <p>Prediction editor</p>);
 jest.mock('../components/date-counter', () => () => null);
+jest.mock('../components/poll-competition', () => () => null);
 jest.mock('../components/party-graph', () => ({ party }) => <tr><td>{party.name}: {party.avg}</td></tr>);
 jest.mock('../components/winner-graph', () => ({ party }) => <tr><td>{party.name}: winner {party.winner}</td></tr>);
 jest.mock('../actions/user', () => ({ getAllBets: () => ({ type: 'NOOP' }) }));

@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { getAllBets } from '../actions/user'
 import { useGroups } from '../groups/context'
 import { mapBetsByParty } from '../utils/data-utils'
+import PollCompetition from './poll-competition'
 
 function Home() {
 
@@ -57,6 +58,7 @@ function Home() {
         <SectionTitle title={scoped ? `סקר הסקרים — ${groups.find(g => g._id === selected)?.name || 'הקבוצה'}` : 'סקר הסקרים'}/>
         <PartiesChart chartData={scoped ? currentCharts : undefined} />
       </>}
+      <PollCompetition />
       <SectionTitle title={'המר עכשיו'}/>
       <Voted />
     </div>
